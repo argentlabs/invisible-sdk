@@ -246,6 +246,8 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       await this.clearSession()
     }
 
+    await this.webWalletConnector.connect() // and sign session
+
     // generate a new session key pair
     const privateKey = ec.starkCurve.utils.randomPrivateKey()
     const publicSessionKey = ec.starkCurve.getStarkKey(privateKey)
