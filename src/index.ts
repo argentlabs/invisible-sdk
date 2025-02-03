@@ -172,6 +172,8 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
   // call this method as soon as the application starts
   async connect(): Promise<ConnectResponse | undefined> {
+    // if this.isConnected() do stuff, if not fail silently
+
     const session = this.getSessionFromStorage()
 
     if (session && session.signature && session.address) {
