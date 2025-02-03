@@ -1,0 +1,15 @@
+{
+  "extends": "semantic-release-monorepo",
+  "branches": [
+    "main",
+    {
+      "name": "develop",
+      "channel": "next"
+    }
+  ],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/npm"
+  ]
+}

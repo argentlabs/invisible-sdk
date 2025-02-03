@@ -1,0 +1,60 @@
+{
+  "name": "web-wallet-sdk",
+  "version": "1.0.0",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "main": "dist/index.es.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.umd.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc && vite build",
+    "release": "semantic-release --extends semantic-release-monorepo",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@argent/x-sessions": "^7.0.0-beta.5",
+    "@argent/x-shared": "^1.38.0",
+    "@avnu/gasless-sdk": "^0.1.5",
+    "@telegram-apps/sdk-react": "^3.0.1",
+    "@telegram-apps/types": "^2.0.0",
+    "assert": "2.1.0",
+    "moderndash": "3.12.0",
+    "starknet": "6.11.0",
+    "starknetkit": "file:../starknetkit",
+    "valibot": "0.35.0"
+  },
+  "devDependencies": {
+    "@argent/x-guardian": "^1.0.2",
+    "@semantic-release/git": "10.0.1",
+    "@tma.js/sdk": "2.7.0",
+    "@types/assert": "^1.5.11",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "semantic-release": "24.2.0",
+    "semantic-release-monorepo": "8.0.2",
+    "type-fest": "4.31.0",
+    "typescript": "5.7.2",
+    "vite": "5.4.11",
+    "vite-plugin-dts": "4.4.0",
+    "vitest": "2.1.8"
+  }
+}
