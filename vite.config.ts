@@ -1,7 +1,7 @@
-import path from "path"
-import process from "process"
-import { defineConfig } from "vite"
-import dts from "vite-plugin-dts"
+import path from "path";
+import process from "process";
+import { defineConfig } from "vite";
+import dts from "vite-plugin-dts";
 
 export default defineConfig({
   define: {
@@ -38,4 +38,7 @@ export default defineConfig({
       rollupTypes: true,
     }),
   ],
-})
+  esbuild: {
+    pure: process.env.NODE_ENV === "production" ? ["console.log"] : [],
+  },
+});
