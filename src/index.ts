@@ -28,7 +28,7 @@ export * from "./paymaster"
 export { createSessionAccount } from "./sessionAccount"
 export { storageService, type IStorageService } from "./storage"
 export type * from "./types"
-export { ApprovalRequest }
+export type { ApprovalRequest }
 
 const SESSION_DEFAULT_VALIDITY_DAYS = 90
 
