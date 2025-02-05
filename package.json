@@ -55,6 +55,8 @@
     "typescript": "5.7.2",
     "vite": "5.4.11",
     "vite-plugin-dts": "4.4.0",
-    "vitest": "2.1.8"
+    "vitest": "2.1.8",
+    "prettier": "^3.3.2",
+    "prettier-plugin-import-sort": "^0.0.7"
   }
 }

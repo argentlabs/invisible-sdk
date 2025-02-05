@@ -37,7 +37,7 @@ export class StorageService implements IStorageService {
   }
 
   getAllKeys(): string[] {
-    return Object.keys(this.storage);
+    return Object.keys(this.storage)
   }
 
   set(key: string, value: string) {
@@ -50,7 +50,7 @@ export class StorageService implements IStorageService {
   remove(key: string) {
     this.validateKey(key)
 
-    return this.storage.deleteItem(key)
+    return this.storage.removeItem(key)
   }
 
   clear() {

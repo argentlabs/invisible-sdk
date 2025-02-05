@@ -1,28 +1,20 @@
 import {
-  // bytesToHexString,
+  bytesToHexString,
   createSession,
-  // createSessionRequest,
+  createSessionRequest,
   Session,
-  // SessionKey,
+  SessionKey,
   SessionRequest,
 } from "@argent/x-sessions"
 import { HTTPService } from "@argent/x-shared"
+import { ec, ProviderInterface, RpcProvider, uint256 } from "starknet"
+import { ApprovalRequest, WebWalletConnector } from "starknetkit/webwallet"
+import { ethAddress, strkAddress } from "./lib"
+import { Address } from "./lib/primitives/address"
 import { ContactArgentBackendService } from "./lib/services/contact/backend"
-import type { ApprovalRequest } from "./lib/shared/stores/approval"
-import { ApprovalRequestStore } from "./lib/shared/stores/approval"
-import {
-  // SessionRequestStore,
-  SessionResponse,
-  // SessionResponseStore,
-} from "./lib/shared/stores/session"
-// import { openTelegramLinkAndClose } from "./lib/shared/telegram"
-// import { retrieveLaunchParams } from "@telegram-apps/sdk-react"
-import {
-  // ec,
-  ProviderInterface, RpcProvider,
-} from "starknet"
-// import { ethAddress, strkAddress } from "./lib"
+import { SessionResponse } from "./lib/shared/stores/session"
 import { createSessionAccount } from "./sessionAccount"
+import { storageService } from "./storage"
 import {
   Environment,
   SessionAccountInterface,
@@ -30,22 +22,20 @@ import {
   SignedSession,
   StarknetChainId,
 } from "./types"
-import { WebWalletConnector } from "starknetkit/webwallet";
-import { storageService } from "./storage";
-import {Address} from "./lib/primitives/address";
 
 export * from "./lib"
 export * from "./paymaster"
 export { createSessionAccount } from "./sessionAccount"
 export { storageService, type IStorageService } from "./storage"
 export type * from "./types"
+export { ApprovalRequest }
 
-// const SESSION_DEFAULT_VALIDITY_DAYS = 90
+const SESSION_DEFAULT_VALIDITY_DAYS = 90
 
 const StorageKeys = {
   User: "User",
   Session: "session",
-  SessionRequest: "session_request"
+  SessionRequest: "session_request",
 } as const
 
 const ENVIRONMENTS: Record<"sepolia" | "mainnet" | "dev", Environment> = {
@@ -65,7 +55,7 @@ const ENVIRONMENTS: Record<"sepolia" | "mainnet" | "dev", Environment> = {
   },
   dev: {
     chainId: StarknetChainId.SN_SEPOLIA,
-    webWalletUrl: "https://web-v2.hydrogen.argent47.net",
+    webWalletUrl: "http://localhost:3005",
     storeUrl: "", // TODO
     argentBaseUrl: "https://api.hydrogen.argent47.net/v1",
     providerDefaultUrl: "https://free-rpc.nethermind.io/sepolia-juno",
@@ -82,19 +72,22 @@ type InitParams = {
   environment?: keyof typeof ENVIRONMENTS
   provider?: ProviderInterface
   sessionParams: SessionParameters
+  webwalletUrl?: string
 }
 
 interface ArgentWebWalletInterface {
   provider: ProviderInterface
   sessionAccount?: SessionAccountInterface
-
+  isConnected(): Promise<boolean>
   connect(): Promise<ConnectResponse | undefined>
   requestConnection({
-    // callbackData,
-    // approvalRequests,
-  }): Promise<undefined>
-  isConnected(): Promise<boolean> // DONE
-  requestApprovals(approvalRequests: ApprovalRequest[]): Promise<void>
+    callbackData,
+    approvalRequests,
+  }: {
+    callbackData?: string
+    approvalRequests?: ApprovalRequest[]
+  }): Promise<ConnectResponse | undefined>
+  requestApprovals(approvalRequests: ApprovalRequest[]): Promise<string>
   // disconnect(approvalRequests: ApprovalRequest[]): Promise<void>
 
   // expert methods
@@ -111,46 +104,28 @@ type ConnectResponse = {
 
 export class ArgentWebWallet implements ArgentWebWalletInterface {
   private webWalletConnector: WebWalletConnector
-
   private appName: string
-  private appTelegramUrl: string
   private environment: Environment
   private sessionParams: SessionParameters
 
   provider: ProviderInterface
-
-  // private requestStore: SessionRequestStore
-  // private responseStore: SessionResponseStore
-  private approvalStore: ApprovalRequestStore
-
   sessionAccount?: SessionAccountInterface
-
   contactService: ContactArgentBackendService
 
   constructor(params: InitParams) {
     this.appName = params.appName
     this.sessionParams = params.sessionParams
     this.environment = ENVIRONMENTS[params.environment ?? "sepolia"]
-    this.appTelegramUrl = params.appTelegramUrl || "" // TODO
     this.provider =
       params.provider ??
       new RpcProvider({ nodeUrl: this.environment.providerDefaultUrl })
     this.webWalletConnector = new WebWalletConnector({
       url: this.environment.webWalletUrl,
-      theme: "light",
-      // authorizedPartyId: string; TODO ??
+      theme: "dark",
+      // authorizedPartyId: string; TODO ?? only for SSO token
     })
 
-    // this.requestStore = new SessionRequestStore(
-    //   `${this.environment.storeUrl}/api/json`,
-    // )
-    // this.responseStore = new SessionResponseStore(
-    //   `${this.environment.storeUrl}/api/json`,
-    // )
-    this.approvalStore = new ApprovalRequestStore(
-      `${this.environment.storeUrl}/api/json`,
-    )
-
+    // TODO: do we need this?
     this.contactService = new ContactArgentBackendService(
       this.environment.argentBaseUrl,
       new HTTPService(
@@ -172,8 +147,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
   // call this method as soon as the application starts
   async connect(): Promise<ConnectResponse | undefined> {
-    // if this.isConnected() do stuff, if not fail silently
-
     const session = this.getSessionFromStorage()
 
     if (session && session.signature && session.address) {
@@ -188,8 +161,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
     if (!sessionRequest) {
       console.log("connect - No session request found")
-
-      return
+      return // TODO: should we throw an error?
     }
 
     // if the session is not signed, that means it was written in the cloud storage after
@@ -238,17 +210,20 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
   }: {
     callbackData?: string
     approvalRequests?: ApprovalRequest[]
-  }): Promise<never> {
+  }): Promise<ConnectResponse | undefined> {
     if (await this.isConnected()) {
       console.log("requestConnection - Already connected")
-      return undefined as never
+      return await this.connect()
     } else {
       console.log("requestConnection - Connecting")
       // Clear any existing invalid session
       await this.clearSession()
     }
 
-    await this.webWalletConnector.connect() // and sign session
+    if (!approvalRequests) {
+      // TODO: or just call webwallet connector.connect()
+      throw new Error("Approval requests are required")
+    }
 
     // generate a new session key pair
     const privateKey = ec.starkCurve.utils.randomPrivateKey()
@@ -266,38 +241,80 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     // note that the session is saved without the signature and the address
     this.saveSessionRequestToStorage(sessionRequest)
 
-    // redirect to the wallet to get the session signed
-    const uuid = await this.requestStore.put({
-      appName: this.appName,
-      sessionTypedData: sessionRequest.sessionTypedData,
-      callbackUrl: this.appTelegramUrl,
+    const result = await this.webWalletConnector.connectAndSignSession({
       callbackData,
       approvalRequests,
+      sessionTypedData: sessionRequest.sessionTypedData,
     })
 
-    // TODO session
-    return undefined as never
+    if (!result.account?.[0]) {
+      throw new Error("No account address found")
+    }
+
+    if (!result.signature) {
+      throw new Error("No signature found")
+    }
+
+    const session = await createSession({
+      sessionRequest,
+      address: result.account[0],
+      chainId: this.environment.chainId,
+      authorisationSignature: result.signature,
+    })
+
+    const signedSession: SignedSession = {
+      ...session,
+      signature: result.signature,
+      deploymentPayload: result.deploymentPayload,
+      address: result.account[0],
+    }
+
+    this.saveSessionToStorage(signedSession)
+
+    // TODO: chain this or the developer should call connect()?
+    // or do we need to return the signed session?
+    return await this.connect()
   }
 
-  async requestApprovals(approvalRequests: ApprovalRequest[]): Promise<void> {
+  async requestApprovals(approvalRequests: ApprovalRequest[]): Promise<string> {
     if (!(await this.isConnected())) {
       throw new Error("User must be connected to request approval requests")
     }
-    // const uuid = await this.approvalStore.put({
-    //   callbackUrl: this.appTelegramUrl,
-    //   requests: approvalRequests,
-    //   appName: this.appName,
-    // })
-    const uuid = "3123-123-3123-312321"
-    return console.log(`${uuid}`, approvalRequests);
-    // return openTelegramLinkAndClose(
-    //   `${this.environment.walletAppUrl}?startapp=${uuid}&mode=compact`,
-    // )
+
+    const calls =
+      approvalRequests.map((request: any) => {
+        if (!request.tokenAddress || !request.spender || !request.amount) {
+          throw new Error(
+            `Invalid approval request: ${JSON.stringify(request)}`,
+          )
+        }
+
+        return {
+          entry_point: "approve",
+          contract_address: request.tokenAddress,
+          calldata: [
+            request.spender,
+            uint256.bnToUint256(BigInt(request.amount)),
+          ],
+        }
+      }) || []
+
+    const { transaction_hash } = await this.webWalletConnector.request({
+      type: "wallet_addInvokeTransaction",
+      params: {
+        calls,
+      },
+    })
+    return transaction_hash
   }
 
   // check if the user is connected
   async isConnected(): Promise<boolean> {
-    return this.webWalletConnector.ready()
+    return (
+      (await this.webWalletConnector.ready()) &&
+      this.sessionAccount !== undefined &&
+      this.sessionAccount?.getSessionStatus() === "VALID"
+    )
   }
 
   // check if the user has already created a wallet
@@ -376,42 +393,40 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     storageService.set(StorageKeys.Session, JSON.stringify(session))
   }
 
-  private saveSessionRequestToStorage(
-    sessionRequest: SessionRequest,
-  ) {
+  private saveSessionRequestToStorage(sessionRequest: SessionRequest) {
     storageService.set(
       StorageKeys.SessionRequest,
       JSON.stringify(sessionRequest),
     )
   }
 
-  // private buildSessionRequest(sessionKey: SessionKey): SessionRequest {
-  //   const allowedMethods = this.sessionParams.allowedMethods.map((method) => ({
-  //     "Contract Address": method.contract,
-  //     selector: method.selector,
-  //   }))
-  //   const days =
-  //     this.sessionParams.validityDays ?? SESSION_DEFAULT_VALIDITY_DAYS
-  //   const expiry = BigInt(Date.now() + days * 1000 * 60 * 60 * 24) / 1000n
-  //   const metaData = {
-  //     projectID: this.appName,
-  //     txFees: [
-  //       {
-  //         tokenAddress: strkAddress,
-  //         maxAmount: "10000000000000000000", // 10
-  //       },
-  //       {
-  //         tokenAddress: ethAddress,
-  //         maxAmount: "100000000000000000", // 0.1
-  //       },
-  //     ],
-  //   }
-  //
-  //   return createSessionRequest({
-  //     chainId: this.environment.chainId,
-  //     sessionParams: { allowedMethods, expiry, metaData, sessionKey },
-  //   })
-  // }
+  private buildSessionRequest(sessionKey: SessionKey): SessionRequest {
+    const allowedMethods = this.sessionParams.allowedMethods.map((method) => ({
+      "Contract Address": method.contract,
+      selector: method.selector,
+    }))
+    const days =
+      this.sessionParams.validityDays ?? SESSION_DEFAULT_VALIDITY_DAYS
+    const expiry = BigInt(Date.now() + days * 1000 * 60 * 60 * 24) / 1000n
+    const metaData = {
+      projectID: this.appName,
+      txFees: [
+        {
+          tokenAddress: strkAddress,
+          maxAmount: "10000000000000000000", // 10
+        },
+        {
+          tokenAddress: ethAddress,
+          maxAmount: "100000000000000000", // 0.1
+        },
+      ],
+    }
+
+    return createSessionRequest({
+      chainId: this.environment.chainId,
+      sessionParams: { allowedMethods, expiry, metaData, sessionKey },
+    })
+  }
 
   private async buildSessionAccountFromStoredSession(
     session: SignedSession,
