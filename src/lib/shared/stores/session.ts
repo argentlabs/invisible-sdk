@@ -4,7 +4,7 @@ import { JsonStoreService } from "../../services/json-store"
 import { TypedData } from "starknet"
 import type { Jsonify } from "type-fest"
 import { AccountDeploymentPayload } from "../types/account"
-import { ApprovalRequest } from "./approval"
+import { ApprovalRequest } from "starknetkit/webwallet"
 
 type JsonTypedData = Jsonify<TypedData> & {
   message: Record<string, unknown>

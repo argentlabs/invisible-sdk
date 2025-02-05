@@ -7,11 +7,14 @@ import {
   SessionRequest,
 } from "@argent/x-sessions"
 import { HTTPService } from "@argent/x-shared"
-import { ContactArgentBackendService } from "./lib/services/contact/backend"
-import type { ApprovalRequest } from "./lib/shared/stores/approval"
-import { SessionResponse } from "./lib/shared/stores/session"
 import { ec, ProviderInterface, RpcProvider, uint256 } from "starknet"
+import { ApprovalRequest, WebWalletConnector } from "starknetkit/webwallet"
+import { ethAddress, strkAddress } from "./lib"
+import { Address } from "./lib/primitives/address"
+import { ContactArgentBackendService } from "./lib/services/contact/backend"
+import { SessionResponse } from "./lib/shared/stores/session"
 import { createSessionAccount } from "./sessionAccount"
+import { storageService } from "./storage"
 import {
   Environment,
   SessionAccountInterface,
@@ -19,10 +22,6 @@ import {
   SignedSession,
   StarknetChainId,
 } from "./types"
-import { WebWalletConnector } from "starknetkit/webwallet"
-import { storageService } from "./storage"
-import { Address } from "./lib/primitives/address"
-import { ethAddress, strkAddress } from "./lib"
 
 export * from "./lib"
 export * from "./paymaster"
@@ -214,7 +213,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
   }): Promise<ConnectResponse | undefined> {
     if (await this.isConnected()) {
       console.log("requestConnection - Already connected")
-      return undefined as never
+      return await this.connect()
     } else {
       console.log("requestConnection - Connecting")
       // Clear any existing invalid session

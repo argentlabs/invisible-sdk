@@ -6389,7 +6389,6 @@ snapshots:
       starknet: 6.11.0
       svelte-forms: 2.3.1
       trpc-browser: 1.4.2(@trpc/client@10.45.2(@trpc/server@10.45.2))(@trpc/server@10.45.2)
-      webwallet-sdk: 'link:'
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
