@@ -28,7 +28,6 @@ import {
   StarknetChainId,
 } from "./types"
 
-
 const mapStarknetChainIdToNetwork = (
   chainId: StarknetChainId,
 ): "sepolia" | "mainnet" => {
@@ -41,7 +40,10 @@ const mapStarknetChainIdToNetwork = (
       throw new Error(`Unknown chain id ${chainId}`)
   }
 }
-export class SessionAccount extends SelfDeployingAccount implements SessionAccountInterface {
+export class SessionAccount
+  extends SelfDeployingAccount
+  implements SessionAccountInterface
+{
   protected deploymentPayload: AccountDeploymentPayload
   protected session: SignedSession
   protected sessionParams: SessionParameters

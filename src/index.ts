@@ -7,7 +7,7 @@ import {
   SessionRequest,
 } from "@argent/x-sessions"
 import { HTTPService } from "@argent/x-shared"
-import { ec, ProviderInterface, RpcProvider, uint256 } from "starknet"
+import { Call, ec, ProviderInterface, RpcProvider, uint256 } from "starknet"
 import { ApprovalRequest, WebWalletConnector } from "starknetkit/webwallet"
 import { ethAddress, strkAddress } from "./lib"
 import { Address } from "./lib/primitives/address"
@@ -100,6 +100,7 @@ type ConnectResponse = {
   user?: User
   callbackData?: string
   approvalTransactionHash?: string
+  approvalRequestsCalls?: Call[]
 }
 
 export class ArgentWebWallet implements ArgentWebWalletInterface {
@@ -241,39 +242,50 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     // note that the session is saved without the signature and the address
     this.saveSessionRequestToStorage(sessionRequest)
 
-    const result = await this.webWalletConnector.connectAndSignSession({
-      callbackData,
-      approvalRequests,
-      sessionTypedData: sessionRequest.sessionTypedData,
-    })
+    try {
+      const result = await this.webWalletConnector.connectAndSignSession({
+        callbackData,
+        approvalRequests,
+        sessionTypedData: sessionRequest.sessionTypedData,
+      })
 
-    if (!result.account?.[0]) {
-      throw new Error("No account address found")
+      if (!result.account?.[0]) {
+        throw new Error("No account address found")
+      }
+
+      if (!result.signature) {
+        throw new Error("No signature found")
+      }
+
+      const session = await createSession({
+        sessionRequest,
+        address: result.account[0],
+        chainId: this.environment.chainId,
+        authorisationSignature: result.signature,
+      })
+
+      const signedSession: SignedSession = {
+        ...session,
+        signature: result.signature,
+        deploymentPayload: result.deploymentPayload,
+        address: result.account[0],
+      }
+
+      this.saveSessionToStorage(signedSession)
+
+      this.sessionAccount =
+        await this.buildSessionAccountFromStoredSession(signedSession)
+
+      return {
+        account: this.sessionAccount,
+        approvalRequestsCalls: result.approvalRequestsCalls,
+        approvalTransactionHash: result.approvalTransactionHash,
+        callbackData: callbackData,
+      }
+    } catch (error) {
+      this.clearSession()
+      throw error
     }
-
-    if (!result.signature) {
-      throw new Error("No signature found")
-    }
-
-    const session = await createSession({
-      sessionRequest,
-      address: result.account[0],
-      chainId: this.environment.chainId,
-      authorisationSignature: result.signature,
-    })
-
-    const signedSession: SignedSession = {
-      ...session,
-      signature: result.signature,
-      deploymentPayload: result.deploymentPayload,
-      address: result.account[0],
-    }
-
-    this.saveSessionToStorage(signedSession)
-
-    // TODO: chain this or the developer should call connect()?
-    // or do we need to return the signed session?
-    return await this.connect()
   }
 
   async requestApprovals(approvalRequests: ApprovalRequest[]): Promise<string> {
