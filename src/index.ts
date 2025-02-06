@@ -71,7 +71,7 @@ interface User {
 type InitParams = {
   appName: string
   sessionParams: SessionParameters
-  paymasterParams: PaymasterParameters
+  paymasterParams?: PaymasterParameters
   webwalletUrl?: string
   environment?: keyof typeof ENVIRONMENTS
   provider?: ProviderInterface
@@ -108,7 +108,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
   private appName: string
   private environment: Environment
   private sessionParams: SessionParameters
-  private paymasterParams: PaymasterParameters
+  private paymasterParams?: PaymasterParameters
 
   private tokenService: ITokenServiceWeb
 
@@ -119,8 +119,10 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
   constructor(params: InitParams) {
     this.appName = params.appName
     this.sessionParams = params.sessionParams
-    this.paymasterParams = params.paymasterParams
     this.environment = ENVIRONMENTS[params.environment ?? "sepolia"]
+    if (params.paymasterParams) {
+      this.paymasterParams = params.paymasterParams
+    }
     this.provider =
       params.provider ??
       new RpcProvider({ nodeUrl: this.environment.providerDefaultUrl })
@@ -460,7 +462,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       provider: this.provider,
       chainId: this.environment.chainId,
       argentBaseUrl: this.environment.argentBaseUrl,
-      paymasterParams: this.paymasterParams,
+      paymasterParams: this.paymasterParams || {},
       tokenService: this.tokenService,
     })
   }
