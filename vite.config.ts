@@ -2,7 +2,6 @@ import path from "path";
 import process from "process";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
-
 export default defineConfig({
   define: {
     "process.env": {},
@@ -13,12 +12,17 @@ export default defineConfig({
       process: "process/browser",
     },
   },
+  esbuild: {
+    drop: [], // This keeps all console.* statements
+    pure: [], // This ensures no functions are marked as pure (which could lead to them being dropped)
+  },
   build: {
     lib: {
       entry: path.resolve(__dirname, "src/index.ts"),
-      name: "@argent/tma-wallet",
+      name: "@argent/webwallet-sdk",
       fileName: (format) => `index.${format}.js`,
     },
+    minify: 'esbuild',
     rollupOptions: {
       // Externalize deps that shouldn't be bundled into your library
       external: [], // Add any external dependencies here
@@ -38,7 +42,4 @@ export default defineConfig({
       rollupTypes: true,
     }),
   ],
-  esbuild: {
-    pure: process.env.NODE_ENV === "production" ? ["console.log"] : [],
-  },
 });
