@@ -1,4 +1,8 @@
-import {isEqualAddress, ITokenServiceWeb, normalizeAddress} from "@argent/x-shared"
+import {
+  isEqualAddress,
+  ITokenServiceWeb,
+  normalizeAddress,
+} from "@argent/x-shared"
 import {
   BASE_URL,
   DeploymentData,
