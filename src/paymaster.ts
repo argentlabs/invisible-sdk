@@ -1,4 +1,8 @@
-import { ITokenServiceWeb, normalizeAddress } from "@argent/x-shared"
+import {
+  isEqualAddress,
+  ITokenServiceWeb,
+  normalizeAddress,
+} from "@argent/x-shared"
 import {
   BASE_URL,
   DeploymentData,
@@ -23,6 +27,7 @@ import {
   UniversalDetails,
 } from "starknet"
 import {
+  PaymasterParameters,
   SelfDeployingAccountInterface,
   StarknetChainId,
   StrongAccountInterface,
@@ -30,6 +35,7 @@ import {
 
 export const gasTokenAddress =
   "0x53b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080"
+const strk = "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
 
 export const gaslessBaseUrls = {
   [StarknetChainId.SN_MAIN]: BASE_URL,
@@ -85,6 +91,7 @@ export async function executeWithPaymaster(
   tokenService: ITokenServiceWeb,
   account: SelfDeployingAccountInterface,
   calls: Call[],
+  paymasterParams: PaymasterParameters,
   universalDetails?: UniversalDetails,
 ) {
   const isDeployed = await account.isDeployed()
@@ -92,6 +99,37 @@ export async function executeWithPaymaster(
   if (!isDeployed) {
     universalDetails = { ...universalDetails, nonce: 0n }
   }
+  // execution with optional account deployment via paymaster
+  let deploymentData: DeploymentData | undefined
+  if (!isDeployed) {
+    deploymentData = {
+      class_hash: deploymentPayload.classHash,
+      salt: deploymentPayload.addressSalt,
+      unique: "0x0",
+      calldata: convertToHex(deploymentPayload.constructorCalldata),
+    }
+  }
+  if (paymasterParams.apiKey) {
+    try {
+      const { transactionHash } = await executeCalls(
+        account,
+        calls,
+        {
+          deploymentData,
+        },
+        {
+          apiKey: paymasterParams.apiKey,
+          baseUrl:
+            paymasterParams.baseUrl ??
+            gaslessBaseUrls[await account.getChainId()],
+        },
+      )
+      return { transaction_hash: transactionHash }
+    } catch (e) {
+      throw e
+    }
+  }
+
   const fee = await getNativeFees({
     deploymentPayload,
     isDeployed,
@@ -128,26 +166,23 @@ export async function executeWithPaymaster(
     "Not enough balance in any gas token - please fund your wallet with a valid gas token",
   )
 
-  // execution with optional account deployment via paymaster
-  let deploymentData: DeploymentData | undefined
-  if (!isDeployed) {
-    deploymentData = {
-      class_hash: deploymentPayload.classHash,
-      salt: deploymentPayload.addressSalt,
-      unique: "0x0",
-      calldata: deploymentPayload.constructorCalldata,
-    }
-  }
   try {
     const { transactionHash } = await executeCalls(
       account,
       calls,
       {
-        gasTokenAddress,
-        maxGasTokenAmount,
+        gasTokenAddress: paymasterParams.apiKey
+          ? undefined
+          : (paymasterParams.tokenAddress ?? gasTokenAddress),
+        maxGasTokenAmount: paymasterParams.apiKey
+          ? undefined
+          : maxGasTokenAmount,
         deploymentData,
       },
-      gaslessOptions,
+      {
+        apiKey: paymasterParams.apiKey,
+        baseUrl: paymasterParams.baseUrl ?? gaslessOptions.baseUrl,
+      },
     )
     return { transaction_hash: transactionHash }
   } catch (e) {
@@ -183,23 +218,39 @@ export function isOutOfGasError(error: unknown) {
 }
 
 export function prependPaymasterTransfer(typedData: TypedData, calls: Call[]) {
-  calls = [...calls]
-
   const messageCalls = (typedData.message as any).Calls as Array<{
     To: string
     Selector: string
   }>
-  if (calls.length === messageCalls.length - 1) {
-    const [first] = messageCalls
-    const transferSelector = hash.getSelectorFromName("transfer")
-    if (first.To === gasTokenAddress && first.Selector === transferSelector) {
-      calls.unshift({
-        contractAddress: gasTokenAddress,
-        entrypoint: "transfer",
-      })
-    }
-  }
 
+  if (calls.length === messageCalls.length - 1) {
+    const transferSelector = hash.getSelectorFromName("transfer")
+
+    // Instead of unshifting, create a new call array in the exact same order
+    let newCalls: Call[] = []
+
+    // Process each messageCall in order
+    for (let i = 0; i < messageCalls.length; i++) {
+      const messageCall = messageCalls[i]
+      if (
+        isEqualAddress(messageCall.To, strk) &&
+        messageCall.Selector === transferSelector
+      ) {
+        // Add the gas token transfer call in the same position
+        newCalls.push({
+          contractAddress: strk,
+          entrypoint: "transfer",
+        })
+      } else {
+        // Add the corresponding call from our original calls array
+        newCalls.push(calls[newCalls.length > i ? i - 1 : i])
+      }
+    }
+    calls = newCalls
+  }
+  console.log("Final calls:", calls)
+
+  // Verify alignment of all calls
   assert(messageCalls.length === calls.length, "unaligned proofs")
   for (let i = 0; i < messageCalls.length; i++) {
     assert(
@@ -230,4 +281,28 @@ function feeInGasToken(
     gaslessCompatibility.dataGasConsumedOverhead,
   )
   return [normalizeAddress(gasTokenPrice.tokenAddress), feeInGasToken] as const
+}
+
+function convertToHex(values: string[]): string[] {
+  return values.map((value: string, index: number): string => {
+    try {
+      // Handle large numbers (more than 15 digits) using BigInt
+      if (value.length > 15) {
+        const bigIntValue = BigInt(value)
+        const hexString = bigIntValue.toString(16)
+        return `0x${hexString}`
+      } else {
+        // Handle smaller numbers using standard conversion
+        const num = parseInt(value, 10)
+        if (isNaN(num)) {
+          throw new Error(`Invalid number at index ${index}`)
+        }
+        return `0x${num.toString(16)}`
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to convert value "${value}" at index ${index}: ${error}`,
+      )
+    }
+  })
 }

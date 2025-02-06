@@ -2,13 +2,16 @@ import {
   buildSessionAccount,
   createOutsideExecutionCall,
   Session,
+  signOutsideExecution,
   verifySession,
 } from "@argent/x-sessions"
 import {
   getAccountDeploymentPayload,
   getLatestArgentAccountClassHash,
   Hex,
+  ITokenServiceWeb,
 } from "@argent/x-shared"
+import assert from "assert"
 import { Address } from "./lib/primitives/address"
 import { AccountDeploymentPayload } from "./lib/shared/types/account"
 import {
@@ -17,17 +20,23 @@ import {
   num,
   ProviderInterface,
   SignerInterface,
+  TypedData,
   UniversalDetails,
 } from "starknet"
 import { SelfDeployingAccount } from "./selfDeployingAccount"
 import {
+  PaymasterParameters,
   SessionAccountInterface,
   SessionParameters,
   SessionStatus,
   SignedSession,
   StarknetChainId,
 } from "./types"
-
+import {
+  executeWithPaymaster,
+  isOutOfGasError,
+  prependPaymasterTransfer,
+} from "./paymaster.ts"
 
 const mapStarknetChainIdToNetwork = (
   chainId: StarknetChainId,
@@ -41,12 +50,17 @@ const mapStarknetChainIdToNetwork = (
       throw new Error(`Unknown chain id ${chainId}`)
   }
 }
-export class SessionAccount extends SelfDeployingAccount implements SessionAccountInterface {
+export class SessionAccount
+  extends SelfDeployingAccount
+  implements SessionAccountInterface
+{
   protected deploymentPayload: AccountDeploymentPayload
   protected session: SignedSession
   protected sessionParams: SessionParameters
+  protected paymasterParams: PaymasterParameters
   argentBaseUrl: string
   chainId: StarknetChainId
+  tokenService: ITokenServiceWeb
   public constructor(
     provider: ProviderInterface,
     public address: Address,
@@ -56,6 +70,8 @@ export class SessionAccount extends SelfDeployingAccount implements SessionAccou
     sessionParams: SessionParameters,
     argentBaseUrl: string,
     chainId: StarknetChainId,
+    tokenService: ITokenServiceWeb,
+    paymasterParams: PaymasterParameters,
   ) {
     super(provider, signer, deploymentPayload)
     this.deploymentPayload = deploymentPayload
@@ -63,6 +79,8 @@ export class SessionAccount extends SelfDeployingAccount implements SessionAccou
     this.sessionParams = sessionParams
     this.argentBaseUrl = argentBaseUrl
     this.chainId = chainId
+    this.tokenService = tokenService
+    this.paymasterParams = paymasterParams
   }
 
   public async getOutsideExecutionPayload({
@@ -84,24 +102,57 @@ export class SessionAccount extends SelfDeployingAccount implements SessionAccou
     abis?: Abi[],
     universalDetails?: UniversalDetails,
   ) {
-    return await this.executeWithDeploy(calls, abis, universalDetails)
+    const handleWithPaymaster = async () => {
+      // sign message is overriden here to allow the session account to sign the message (called outside our codebase)
+      this.signMessage = (typedData: TypedData) =>
+        this.signMessageFromOutside(typedData, calls)
+      const response = await executeWithPaymaster(
+        this.tokenService,
+        this,
+        calls,
+        this.paymasterParams,
+        universalDetails,
+      )
+      this.isDeployedPromise = Promise.resolve(true)
+      return response
+    }
+    try {
+      if (this.paymasterParams.apiKey) {
+        return await handleWithPaymaster()
+      } else {
+        assert(
+          await this.isDeployed(),
+          "validation failed gas bounds exceed balance",
+        )
+        return await this.executeWithDeploy(calls, abis, universalDetails)
+      }
+    } catch (error) {
+      if (isOutOfGasError(error)) {
+        await handleWithPaymaster()
+      }
+      throw error
+    }
   }
 
-  // uncomment to enable paymaster on session account:
-  // protected async onExecute(calls: Call[], abis?: Abi[], universalDetails?: UniversalDetails) {
-  //   try {
-  //     assert(await this.isDeployed(), "validation failed gas bounds exceed balance");
-  //     return await this.executeDefault(calls, abis, universalDetails);
-  //   } catch (error) {
-  //     if (isOutOfGasError(error)) {
-  //       this.signMessage = (typedData: TypedData) => this.signMessageFromOutside(typedData, calls);
-  //       const response = await executeWithPaymaster(this.tokenService, this, calls, universalDetails);
-  //       this.isDeployedPromise = Promise.resolve(true);
-  //       return response;
-  //     }
-  //     throw error;
-  //   }
-  // }
+  public async signMessageFromOutside(typedData: TypedData, calls: Call[]) {
+    assert(
+      typedData.primaryType === "OutsideExecution",
+      "signMessage only for outside execution",
+    )
+    assert(
+      typedData.domain.name === "Account.execute_from_outside",
+      "signMessage only for outside execution",
+    )
+
+    return signOutsideExecution({
+      session: this.session,
+      sessionKey: this.session.sessionKey,
+      outsideExecutionTypedData: typedData,
+      calls: prependPaymasterTransfer(typedData, calls),
+      network: mapStarknetChainIdToNetwork(this.chainId),
+      argentSessionServiceUrl: this.argentBaseUrl,
+    })
+  }
 
   public getSessionStatus(): SessionStatus {
     if (num.toBigInt(this.session.expiresAt) * 1000n <= Date.now()) {
@@ -159,6 +210,8 @@ export async function createSessionAccount({
   provider,
   chainId,
   argentBaseUrl,
+  tokenService,
+  paymasterParams,
 }: {
   session: SignedSession
   sessionParams: SessionParameters
@@ -166,6 +219,8 @@ export async function createSessionAccount({
   chainId: StarknetChainId
   argentBaseUrl: string
   transactionVersion?: "0x2" | "0x3"
+  tokenService: ITokenServiceWeb
+  paymasterParams: PaymasterParameters
 }): Promise<SessionAccount> {
   const account = await buildSessionAccount({
     session,
@@ -194,5 +249,7 @@ export async function createSessionAccount({
     sessionParams,
     argentBaseUrl,
     chainId,
+    tokenService,
+    paymasterParams,
   )
 }
