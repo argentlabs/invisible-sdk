@@ -120,9 +120,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     this.appName = params.appName
     this.sessionParams = params.sessionParams
     this.environment = ENVIRONMENTS[params.environment ?? "sepolia"]
-    if (params.paymasterParams) {
-      this.paymasterParams = params.paymasterParams
-    }
+    this.paymasterParams = params.paymasterParams ?? {}
     this.provider =
       params.provider ??
       new RpcProvider({ nodeUrl: this.environment.providerDefaultUrl })
@@ -462,7 +460,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       provider: this.provider,
       chainId: this.environment.chainId,
       argentBaseUrl: this.environment.argentBaseUrl,
-      paymasterParams: this.paymasterParams || {},
+      paymasterParams: this.paymasterParams ?? {},
       tokenService: this.tokenService,
     })
   }
