@@ -17,7 +17,7 @@ Below is an integration example in a simple React application (read the comments
 
 import { useCallback, useEffect, useState } from "react";
 import { LibraryError, RpcProvider, constants } from "starknet";
-import { ArgentWebWallet, SessionAccountInterface } from "webwallet-sdk";
+import { ArgentWebWallet, SessionAccountInterface } from "@argent/webwallet-sdk";
 import { toast } from "sonner";
 
 const ARGENT_DUMMY_CONTRACT_ADDRESS = "0x07557a2fbe051e6327ab603c6d1713a91d2cfba5382ac6ca7de884d3278636d7";
@@ -27,7 +27,7 @@ const provider = new RpcProvider({});
 
 const argentWebWallet = ArgentWebWallet.init({
    appName: "Test",
-   environment: "dev",
+   environment: "sepolia",
    sessionParams: {
       allowedMethods: [
          {
