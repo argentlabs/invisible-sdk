@@ -1,5 +1,5 @@
 {
-  "name": "web-wallet-sdk",
+  "name": "webwallet-sdk",
   "version": "1.0.0",
   "license": "MIT",
   "type": "module",
@@ -37,7 +37,7 @@
     "assert": "2.1.0",
     "moderndash": "3.12.0",
     "starknet": "6.11.0",
-    "starknetkit": "file:../starknetkit",
+    "starknetkit": "2.7.0-beta-ww-sdk.1",
     "valibot": "0.35.0"
   },
   "devDependencies": {
