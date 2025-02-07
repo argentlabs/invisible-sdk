@@ -33,9 +33,6 @@ importers:
         specifier: 0.35.0
         version: 0.35.0
     devDependencies:
-      '@argent/x-guardian':
-        specifier: ^1.0.2
-        version: 1.0.2(starknet@6.11.0)
       '@semantic-release/git':
         specifier: 10.0.1
         version: 10.0.1(semantic-release@24.2.0(typescript@5.7.2))
@@ -119,11 +116,6 @@ packages:
   '@ampproject/remapping@2.3.0':
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
-
-  '@argent/x-guardian@1.0.2':
-    resolution: {integrity: sha512-5Q9/r+5gwcVRLjEyjJbkcdqQwdl9NNlsvJPiA8c+BknC56lb4/ztYGgXi2vBYOVz/tYC5/gGhTApUDM8MsRCQQ==}
-    peerDependencies:
-      starknet: 6.9.0
 
   '@argent/x-multicall@7.1.0':
     resolution: {integrity: sha512-65y2pXtsjACIYqyjJ75FMbQcnv/5MnONyS3yN+0JgLLNqCEiGrLbGwEZ/E+Esy0qPF1WBqzdx8l3izj5l2zAwQ==}
@@ -1889,9 +1881,6 @@ packages:
   jju@1.4.0:
     resolution: {integrity: sha512-8wb9Yw966OSxApiCt0K3yNJL8pnNeIv+OEq2YMidz4FKP6nonSRoOXc80iXY4JaN2FC11B9qsNmDsm+ZOfMROA==}
 
-  jose@5.9.6:
-    resolution: {integrity: sha512-AMlnetc9+CV9asI19zHmrgS/WYsWUwCn2R7RzlbJWD7F9eWYUTGyBmU9o6PxngtLGOiDGPRu+Uc4fhKzbpteZQ==}
-
   js-sha3@0.8.0:
     resolution: {integrity: sha512-gF1cRrHhIzNfToc802P800N8PpXS+evLLXfsVpowqmAFR9uwbi89WvXg2QspOmXL8QL86J4T1EpFu+yUkwJY3Q==}
 
@@ -3287,13 +3276,6 @@ snapshots:
     dependencies:
       '@jridgewell/gen-mapping': 0.3.8
       '@jridgewell/trace-mapping': 0.3.25
-
-  '@argent/x-guardian@1.0.2(starknet@6.11.0)':
-    dependencies:
-      jose: 5.9.6
-      lodash-es: 4.17.21
-      starknet: 6.11.0
-      zod: 3.24.1
 
   '@argent/x-multicall@7.1.0(typescript@5.7.2)':
     dependencies:
@@ -5375,8 +5357,6 @@ snapshots:
   java-properties@1.0.2: {}
 
   jju@1.4.0: {}
-
-  jose@5.9.6: {}
 
   js-sha3@0.8.0: {}
 
