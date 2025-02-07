@@ -1,169 +1,239 @@
-# @argent/tma-wallet (alpha)
+# @argent/webwallet-sdk (alpha)
 
-This package provides an integration to an Argent wallet for [Telegram mini apps](https://core.telegram.org/bots/webapps).
-
-### 🚨 The Argent wallet in Telegram is already available in the [Telegram Test Environment](https://core.telegram.org/bots/webapps#testing-mini-apps) and is connected to [Starknet Sepolia Network](https://sepolia.voyager.online/). Accessing the Telegram Prod Environment and Starknet Mainnet requires whitelisting. If you want to start using it in the Telegram Prod Environment, please contact us at antoinemecker@argent.xyz or @Flexouille on Telegram.
-
-
-## Prerequisites
-
-In order to start integrating the SDK in your Telegram mini (d)app, you first need to create an Argent wallet in the Telegram Test Environment. Here are the steps to follow:
-
-1. Setup a Telegram Test account following [this documentation](https://core.telegram.org/bots/webapps#testing-mini-apps).
-
-2. Setup a username for your Telegram test account, otherwise it won't work with the wallet. Click on your profile then `Username`.
-
-3. Open the Argent Wallet by starting a conversation with @ArgentTestBot, then press **Start** and click on the **Open wallet** button.
-
-   :warning: First time registration may take a few seconds (up to 10 seconds).
-
-4. Now you should have an account, copy your account address and fund it with STRK using the [Starknet Sepolia Faucet](https://starknet-faucet.vercel.app/)
-
-5. Once your account is funded, it's safer to activate it (i.e. deploy the account). The easiest way to trigger this activation is to send yourself 1 STRK, this will deploy the account automatically. You can do this in the Wallet or using the `/send` command in your conversation with the @ArgentTestBot.
-
-6. Now you have a deployed account funded with STRK ready to be integrated with your mini (d)app!
+This package provides an integration for Argent's Web Wallet
 
 ## Integration
 
 To install the package, use the following command:
 
 ```sh
-npm install @argent/tma-wallet
+npm install @argent/webwallet-sdk
 ```
 
 Below is an integration example in a simple React application (read the comments!). You'll find more documentation at the end of this file.
 
 ```typescript
-import { useEffect, useState } from "react";
-import { ArgentTMA, SessionAccountInterface } from "@argent/tma-wallet";
-import { Account } from "starknet";
+"use client";
 
-const argentTMA = ArgentTMA.init({
-  environment: "sepolia", // "sepolia" | "mainnet" (not supperted yet)
-  appName: "My TG Mini Test Dapp", // Your Telegram app name
-  appTelegramUrl: "https://t.me/my_telegram_bot/app_name", // Your Telegram app URL
-  sessionParams: {
-    allowedMethods: [
-      // List of contracts/methods allowed to be called by the session key
-      {
-        contract:
-          "0x036133c88c1954413150db74c26243e2af77170a4032934b275708d84ec5452f",
-        selector: "increment",
-      }
-    ],
-    validityDays: 90 // session validity (in days) - default: 90
-  },
+import { useCallback, useEffect, useState } from "react";
+import { LibraryError, RpcProvider, constants } from "starknet";
+import { ArgentWebWallet, SessionAccountInterface } from "webwallet-sdk";
+import { toast } from "sonner";
+
+const ARGENT_DUMMY_CONTRACT_ADDRESS = "0x07557a2fbe051e6327ab603c6d1713a91d2cfba5382ac6ca7de884d3278636d7";
+const ARGENT_DUMMY_CONTRACT_ENTRYPOINT = "increase_number";
+
+const provider = new RpcProvider({});
+
+const argentWebWallet = ArgentWebWallet.init({
+   appName: "Test",
+   environment: "dev",
+   sessionParams: {
+      allowedMethods: [
+         {
+            contract: ARGENT_DUMMY_CONTRACT_ADDRESS,
+            selector: ARGENT_DUMMY_CONTRACT_ENTRYPOINT,
+         },
+      ],
+   },
+   // paymasterParams: {
+   //    apiKey: "" // avnu paymasters API Key
+   // },
 });
 
-function App() {
-  const [account, setAccount] = useState<SessionAccountInterface | undefined>();
-  const [isConnected, setIsConnected] = useState<boolean>(false);
+export default function Home() {
+   const [account, setAccount] = useState<SessionAccountInterface | undefined>(undefined);
+   const [isLoading, setIsLoading] = useState(false);
+   const [txHash, setTxHash] = useState<string | undefined>();
+   const [counter, setCounter] = useState<bigint | undefined>();
 
-  useEffect(() => {
-    // Call connect() as soon as the app is loaded
-    argentTMA
-      .connect()
-      .then((res) => {
-        if (!res) {
-          // Not connected
-          setIsConnected(false);
-          return;
-        }
+   useEffect(() => {
+      argentWebWallet
+              .connect()
+              .then((res) => {
+								
+                 if (!res) {
+                    console.log("Not connected");
+                    return;
+                 }
 
-        if (account.getSessionStatus() !== "VALID") {
-          // Session has expired or scope (allowed methods) has changed
-          // A new connection request should be triggered
+                 console.log("Connected to Argent Web Wallet", res);
+                 const { account, callbackData, approvalTransactionHash } = res;
 
-          // The account object is still available to get access to user's address
-          // but transactions can't be executed
-          const { account } = res;
+                 if (account.getSessionStatus() !== "VALID") {
+                    console.log("Session is not valid");
+                    return;
+                 }
 
-          setAccount(account);
-          setIsConnected(false);
-          return;
-        }
+                 setAccount(account);
+                 console.log("Callback data", callbackData); // -- custom_callback_string
+                 console.log("Approval transaction hash", approvalTransactionHash); // -- custom_callback_string
+              })
+              .catch((err) => {
+                 console.error("Failed to connect to Argent Web Wallet", err);
+              });
+   }, []);
 
-        // Connected
-        const { account, callbackData } = res;
-        // The session account is returned and can be used to submit transactions
-        setAccount(account);
-        setIsConnected(true);
-        // Custom data passed to the requestConnection() method is available here
-        console.log("callback data:", callbackData);
-      })
-      .catch((err) => {
-        console.error("Failed to connect", err);
+   const fetchCounter = useCallback(async (account?: SessionAccountInterface) => {
+      if (!account) {
+         return BigInt(0);
+      }
+
+      const [counter] = await provider.callContract({
+         contractAddress: ARGENT_DUMMY_CONTRACT_ADDRESS,
+         entrypoint: "get_number",
+         calldata: [account?.address],
       });
-  }, []);
+      return BigInt(counter);
+   }, []);
 
-  const handleConnectButton = async () => {
-    // If not connected, trigger a connection request
-    // It will open the wallet and ask the user to approve the connection
-    // The wallet will redirect back to the app and the account will be available
-    // from the connect() method -- see above
-    await argentTMA.requestConnection("custom_callback_data", [
-      {
-        token: {
-          // Token address that you need approved
-          address: "0x049D36570D4e46f48e99674bd3fcc84644DdD6b96F7C741B1562B82f9e004dC7",
-          name: "Ethereum",
-          symbol: "ETH",
-          decimals: 18,
-        },
-        amount: BigInt(100000).toString(),
-        // Your dapp contract
-        spender: "0x7e00d496e324876bbc8531f2d9a82bf154d1a04a50218ee74cdd372f75a551a",
-      },
-    ]);
-  };
+   const handleConnect = async () => {
+      try {
+         const response =  await argentWebWallet.requestConnection({
+            callbackData: "custom_callback_data",
+            approvalRequests: [
+               {
+                  tokenAddress: "0x049D36570D4e46f48e99674bd3fcc84644DdD6b96F7C741B1562B82f9e004dC7",
+                  amount: BigInt("100000000000000000").toString(),
+                  // Your dapp contract
+                  spender: "0x7e00d496e324876bbc8531f2d9a82bf154d1a04a50218ee74cdd372f75a551a",
+               },
+            ],
+         });
+				 
+         const { account: sessionAccount } = response
+         console.log(sessionAccount);
+         setAccount(sessionAccount);
+      } catch (err) {
+         console.error(err);
+      }
+   };
 
-  // useful for debugging
-  const handleClearSessionButton = async () => {
-    await argentTMA.clearSession();
-    setAccount(undefined);
-  };
+   const handleSubmitTransactionButton = async () => {
+      try {
+         if (!account) {
+            throw new Error("Account not connected");
+         }
+         setIsLoading(true);
 
-  return (
-    <>
-      <div>
-        {!isConnected && <button onClick={handleConnectButton}>Connect</button>}
+         try {
+            const call = {
+               contractAddress: ARGENT_DUMMY_CONTRACT_ADDRESS,
+               entrypoint: ARGENT_DUMMY_CONTRACT_ENTRYPOINT,
+               calldata: ["0x1"],
+            };
 
-        {isConnected && (
-          <>
-            <p>
-              Account address: <code>{account.address}</code>
-            </p>
-            <button onClick={handleClearSessionButton}>Clear Session</button>
-          </>
-        )}
+            const { resourceBounds: estimatedResourceBounds } = await account.estimateInvokeFee(call, {
+               version: "0x3",
+            });
+
+            const resourceBounds = {
+               ...estimatedResourceBounds,
+               l1_gas: {
+                  ...estimatedResourceBounds.l1_gas,
+                  max_amount: "0x28",
+               },
+            };
+
+            const { transaction_hash } = await account.execute(call, {
+               version: "0x3",
+               resourceBounds,
+            });
+            setTxHash(transaction_hash);
+
+            // Wait for transaction to be mined
+            await account.waitForTransaction(transaction_hash);
+            setIsLoading(false);
+
+            // refetch counter
+            const newCounter = await fetchCounter(account);
+            setCounter(newCounter);
+            setTxHash(undefined);
+         } catch (error) {
+            if (error instanceof LibraryError) {
+               const messageArray = error.message.split("\n");
+               const lastMessage = messageArray[messageArray.length - 1];
+               const displayMessage = lastMessage.replace('\\"', "").replace('"', "").trim();
+               toast.error(displayMessage);
+            } else {
+               toast.error(`${error}`);
+            }
+            setIsLoading(false);
+         }
+      } catch (err) {
+         console.error(err);
+         setIsLoading(false);
+      }
+   };
+
+   useEffect(() => {
+      fetchCounter(account).then(setCounter);
+   }, [account, fetchCounter]);
+
+   const truncateHex = (hex: string) => `${hex.slice(0, 6)}...${hex.slice(-4)}`;
+
+   return (
+           <div className="flex flex-col min-h-screen p-8 pb-20 gap-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+                   {!account && (
+           <button className="bg-white text-black p-2 rounded-md" onClick={handleConnect} disabled={isLoading}>
+           Connect
+           </button>
+)}
+
+   {account && (
+           <>
+                   <div className="flex gap-4 items-center">
+                   <div>{account.address}</div>
+                   <button
+      className="bg-blue-300 text-black p-2 rounded-md w-full"
+      onClick={handleSubmitTransactionButton}
+      disabled={isLoading}
+              >
+              Send tx
+   </button>
+   </div>
+   <div className="flex flex-col gap-4">
+           {txHash && (
+                   <p>
+                           Transaction hash:{" "}
+      <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank">
+           <code>{truncateHex(txHash)}</code>
+           </a>
+           </p>
+   )}
+      {counter !== undefined && (
+              <p>
+                      Counter value: <code>{counter.toString()}</code>
+      </p>
+      )}
       </div>
-    </>
-  );
+      </>
+   )}
+   </div>
+);
 }
-
-export default App;
 ```
 
-Below is the complete description of the `ArgentTMAInterface`:
+Below is the complete description of the `ArgentWebWalletInterface`:
 
 ```typescript
-interface ArgentTMAInterface {
-  provider: ProviderInterface
-  sessionAccount?: SessionAccountInterface
+interface ArgentWebWalletInterface {
+	provider: ProviderInterface
+	sessionAccount?: SessionAccountInterface
+	isConnected(): Promise<boolean>
+	connect(): Promise<ConnectResponse | undefined>
+	requestConnection({
+											callbackData,
+											approvalRequests,
+										}: {
+		callbackData?: string
+		approvalRequests?: ApprovalRequest[]
+	}): Promise<ConnectResponse | undefined>
+	requestApprovals(approvalRequests: ApprovalRequest[]): Promise<string>
 
-  connect(): Promise<ConnectResponse | undefined>
-  requestConnection(
-    callbackData: string,
-    approvalRequests?: ApprovalRequest[]
-  ): Promise<never>
-  isConnected(): boolean
-  requestApprovals(approvalRequests: ApprovalRequest[]): Promise<void>
-
-  hasWallet(userId: number): Promise<boolean>
-
-  // advanced methods
-  exportSignedSession(): Promise<ArgentTMASession | undefined>
-  clearSession(): Promise<void>
+	// expert methods
+	exportSignedSession(): Promise<SignedSession | undefined>
+	clearSession(): Promise<void>
 }
 ```
 
@@ -186,14 +256,11 @@ and `ConnectResponse` by:
 
 ```typescript
 type ConnectResponse = {
-  account: SessionAccountInterface
-  callbackData?: string
+	account: SessionAccountInterface
+	user?: User
+	callbackData?: string
+	approvalTransactionHash?: string
+	approvalRequestsCalls?: Call[]
+	deploymentPayload?: any
 }
 ```
-
-### Other helpful links
-
-- [Telegram Wallet documentation](https://docs.argent.xyz/argent-wallets/telegram-wallet)
-- [Telegram wallet Tamagotchi tutorial](https://www.argent.xyz/blog/argent-telegram-tamagotchi)
-- [Building a Telegram Game on Starknet with Argent's Wallet SDK: A Step-by-Step Guide by Mano](https://hackmd.io/@manoah22/Sk_eRyi1Jx#Building-a-Telegram-Game-on-Starknet-with-Argents-Wallet-SDK-A-Step-by-Step-Guide)
-- [How to use Argent Telegram wallet](https://www.argent.xyz/blog/how-to-use-argent-telegram-wallet)
