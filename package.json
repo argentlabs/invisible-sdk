@@ -27,7 +27,7 @@
   },
   "scripts": {
     "build": "tsc && vite build",
-    "release": "semantic-release --extends semantic-release-monorepo",
+    "release": "semantic-release",
     "test": "vitest"
   },
   "dependencies": {
