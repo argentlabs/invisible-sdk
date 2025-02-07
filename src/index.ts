@@ -6,16 +6,15 @@ import {
   SessionKey,
   SessionRequest,
 } from "@argent/x-sessions"
+import { Call, ec, ProviderInterface, RpcProvider, uint256 } from "starknet"
 import {
   HTTPService,
   ITokenServiceWeb,
   TokenServiceWeb,
 } from "@argent/x-shared"
-import { ec, ProviderInterface, RpcProvider, uint256 } from "starknet"
 import { ApprovalRequest, WebWalletConnector } from "starknetkit/webwallet"
 import { ethAddress, strkAddress } from "./lib"
 import { Address } from "./lib/primitives/address"
-// import { ContactArgentBackendService } from "./lib/services/contact/backend"
 import { SessionResponse } from "./lib/shared/stores/session"
 import { createSessionAccount } from "./sessionAccount"
 import { storageService } from "./storage"
@@ -101,6 +100,7 @@ type ConnectResponse = {
   user?: User
   callbackData?: string
   approvalTransactionHash?: string
+  approvalRequestsCalls?: Call[]
 }
 
 export class ArgentWebWallet implements ArgentWebWalletInterface {
@@ -114,7 +114,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
   provider: ProviderInterface
   sessionAccount?: SessionAccountInterface
-  // contactService: ContactArgentBackendService
 
   constructor(params: InitParams) {
     this.appName = params.appName
@@ -145,25 +144,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
         "json",
       ),
     )
-
-    // // TODO: do we need this?
-    // this.contactService = new ContactArgentBackendService(
-    //   this.environment.argentBaseUrl,
-    //   new HTTPService(
-    //     {
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //         "Argent-Client": "webwallet-sdk",
-    //         "Argent-Version": "1.0.0",
-    //         "Argent-Network":
-    //           this.environment.chainId === StarknetChainId.SN_MAIN
-    //             ? "mainnet"
-    //             : "sepolia",
-    //       },
-    //     },
-    //     "json",
-    //   ),
-    // )
   }
 
   // call this method as soon as the application starts
@@ -232,7 +212,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     callbackData?: string
     approvalRequests?: ApprovalRequest[]
   }): Promise<ConnectResponse | undefined> {
-    console.log("HERE requestConnection")
     if (await this.isConnected()) {
       console.log("requestConnection - Already connected")
       return await this.connect()
@@ -263,39 +242,50 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     // note that the session is saved without the signature and the address
     this.saveSessionRequestToStorage(sessionRequest)
 
-    const result = await this.webWalletConnector.connectAndSignSession({
-      callbackData,
-      approvalRequests,
-      sessionTypedData: sessionRequest.sessionTypedData,
-    })
+    try {
+      const result = await this.webWalletConnector.connectAndSignSession({
+        callbackData,
+        approvalRequests,
+        sessionTypedData: sessionRequest.sessionTypedData,
+      })
 
-    if (!result.account?.[0]) {
-      throw new Error("No account address found")
+      if (!result.account?.[0]) {
+        throw new Error("No account address found")
+      }
+
+      if (!result.signature) {
+        throw new Error("No signature found")
+      }
+
+      const session = await createSession({
+        sessionRequest,
+        address: result.account[0],
+        chainId: this.environment.chainId,
+        authorisationSignature: result.signature,
+      })
+
+      const signedSession: SignedSession = {
+        ...session,
+        signature: result.signature,
+        deploymentPayload: result.deploymentPayload,
+        address: result.account[0],
+      }
+
+      this.saveSessionToStorage(signedSession)
+
+      this.sessionAccount =
+        await this.buildSessionAccountFromStoredSession(signedSession)
+
+      return {
+        account: this.sessionAccount,
+        approvalRequestsCalls: result.approvalRequestsCalls,
+        approvalTransactionHash: result.approvalTransactionHash,
+        callbackData: callbackData,
+      }
+    } catch (error) {
+      this.clearSession()
+      throw error
     }
-
-    if (!result.signature) {
-      throw new Error("No signature found")
-    }
-
-    const session = await createSession({
-      sessionRequest,
-      address: result.account[0],
-      chainId: this.environment.chainId,
-      authorisationSignature: result.signature,
-    })
-
-    const signedSession: SignedSession = {
-      ...session,
-      signature: result.signature,
-      deploymentPayload: result.deploymentPayload,
-      address: result.account[0],
-    }
-
-    this.saveSessionToStorage(signedSession)
-
-    // TODO: chain this or the developer should call connect()?
-    // or do we need to return the signed session?
-    return await this.connect()
   }
 
   async requestApprovals(approvalRequests: ApprovalRequest[]): Promise<string> {
@@ -338,13 +328,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       this.sessionAccount?.getSessionStatus() === "VALID"
     )
   }
-
-  // TODO can/should we provide this?
-  // // check if the user has already created a wallet
-  // async hasWallet(userId: number): Promise<boolean> {
-  //   const contact = await this.contactService.getContactById(userId)
-  //   return contact !== null
-  // }
 
   // export the session, to use it somewhere else in the application
   async exportSignedSession(): Promise<SignedSession | undefined> {
