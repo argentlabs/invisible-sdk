@@ -6,17 +6,21 @@ import {
   SessionKey,
   SessionRequest,
 } from "@argent/x-sessions"
-import { HTTPService } from "@argent/x-shared"
 import { Call, ec, ProviderInterface, RpcProvider, uint256 } from "starknet"
+import {
+  HTTPService,
+  ITokenServiceWeb,
+  TokenServiceWeb,
+} from "@argent/x-shared"
 import { ApprovalRequest, WebWalletConnector } from "starknetkit/webwallet"
 import { ethAddress, strkAddress } from "./lib"
 import { Address } from "./lib/primitives/address"
-import { ContactArgentBackendService } from "./lib/services/contact/backend"
 import { SessionResponse } from "./lib/shared/stores/session"
 import { createSessionAccount } from "./sessionAccount"
 import { storageService } from "./storage"
 import {
   Environment,
+  PaymasterParameters,
   SessionAccountInterface,
   SessionParameters,
   SignedSession,
@@ -28,7 +32,7 @@ export * from "./paymaster"
 export { createSessionAccount } from "./sessionAccount"
 export { storageService, type IStorageService } from "./storage"
 export type * from "./types"
-export type { ApprovalRequest }
+export type { ApprovalRequest, WebWalletConnector }
 
 const SESSION_DEFAULT_VALIDITY_DAYS = 90
 
@@ -42,21 +46,18 @@ const ENVIRONMENTS: Record<"sepolia" | "mainnet" | "dev", Environment> = {
   sepolia: {
     chainId: StarknetChainId.SN_SEPOLIA,
     webWalletUrl: "https://web-v2.hydrogen.argent47.net",
-    storeUrl: "", // TODO
     argentBaseUrl: "https://api.hydrogen.argent47.net/v1",
     providerDefaultUrl: "https://free-rpc.nethermind.io/sepolia-juno",
   },
   mainnet: {
     chainId: StarknetChainId.SN_MAIN,
     webWalletUrl: "https://web.argent.xyz",
-    storeUrl: "", // TODO
     argentBaseUrl: "https://cloud.argent-api.com/v1",
     providerDefaultUrl: "https://free-rpc.nethermind.io/mainnet-juno",
   },
   dev: {
     chainId: StarknetChainId.SN_SEPOLIA,
     webWalletUrl: "http://localhost:3005",
-    storeUrl: "", // TODO
     argentBaseUrl: "https://api.hydrogen.argent47.net/v1",
     providerDefaultUrl: "https://free-rpc.nethermind.io/sepolia-juno",
   },
@@ -68,11 +69,11 @@ interface User {
 
 type InitParams = {
   appName: string
-  appTelegramUrl?: string
+  sessionParams: SessionParameters
+  paymasterParams?: PaymasterParameters
+  webwalletUrl?: string
   environment?: keyof typeof ENVIRONMENTS
   provider?: ProviderInterface
-  sessionParams: SessionParameters
-  webwalletUrl?: string
 }
 
 interface ArgentWebWalletInterface {
@@ -88,7 +89,6 @@ interface ArgentWebWalletInterface {
     approvalRequests?: ApprovalRequest[]
   }): Promise<ConnectResponse | undefined>
   requestApprovals(approvalRequests: ApprovalRequest[]): Promise<string>
-  // disconnect(approvalRequests: ApprovalRequest[]): Promise<void>
 
   // expert methods
   exportSignedSession(): Promise<SignedSession | undefined>
@@ -108,26 +108,26 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
   private appName: string
   private environment: Environment
   private sessionParams: SessionParameters
+  private paymasterParams?: PaymasterParameters
+
+  private tokenService: ITokenServiceWeb
 
   provider: ProviderInterface
   sessionAccount?: SessionAccountInterface
-  contactService: ContactArgentBackendService
 
   constructor(params: InitParams) {
     this.appName = params.appName
     this.sessionParams = params.sessionParams
     this.environment = ENVIRONMENTS[params.environment ?? "sepolia"]
+    this.paymasterParams = params.paymasterParams ?? {}
     this.provider =
       params.provider ??
       new RpcProvider({ nodeUrl: this.environment.providerDefaultUrl })
     this.webWalletConnector = new WebWalletConnector({
       url: this.environment.webWalletUrl,
       theme: "dark",
-      // authorizedPartyId: string; TODO ?? only for SSO token
     })
-
-    // TODO: do we need this?
-    this.contactService = new ContactArgentBackendService(
+    this.tokenService = new TokenServiceWeb(
       this.environment.argentBaseUrl,
       new HTTPService(
         {
@@ -329,12 +329,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     )
   }
 
-  // check if the user has already created a wallet
-  async hasWallet(userId: number): Promise<boolean> {
-    const contact = await this.contactService.getContactById(userId)
-    return contact !== null
-  }
-
   // export the session, to use it somewhere else in the application
   async exportSignedSession(): Promise<SignedSession | undefined> {
     const session = await this.getSessionFromStorage()
@@ -449,6 +443,8 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       provider: this.provider,
       chainId: this.environment.chainId,
       argentBaseUrl: this.environment.argentBaseUrl,
+      paymasterParams: this.paymasterParams ?? {},
+      tokenService: this.tokenService,
     })
   }
 

@@ -13,6 +13,12 @@ export enum StarknetChainId {
   SN_SEPOLIA = "0x534e5f5345504f4c4941", // encodeShortString('SN_SEPOLIA')
 }
 
+export type PaymasterParameters = {
+  baseUrl?: string
+  apiKey?: string
+  tokenAddress?: Address
+}
+
 export type SessionParameters = {
   allowedMethods: Array<{
     contract: string
@@ -48,7 +54,6 @@ export type SessionStatus =
 
 export interface Environment {
   chainId: StarknetChainId
-  storeUrl: string
   argentBaseUrl: string
   providerDefaultUrl: string
   webWalletUrl: string
