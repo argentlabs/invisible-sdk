@@ -101,6 +101,7 @@ type ConnectResponse = {
   callbackData?: string
   approvalTransactionHash?: string
   approvalRequestsCalls?: Call[]
+  deploymentPayload?: any
 }
 
 export class ArgentWebWallet implements ArgentWebWalletInterface {
@@ -200,6 +201,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
         callbackData: response.sessionResponse.callbackData,
         approvalTransactionHash:
           response.sessionResponse.approvalTransactionHash,
+        deploymentPayload: response.sessionResponse.deploymentData,
       }
     }
   }
@@ -280,6 +282,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
         account: this.sessionAccount,
         approvalRequestsCalls: result.approvalRequestsCalls,
         approvalTransactionHash: result.approvalTransactionHash,
+        deploymentPayload: result.deploymentPayload,
         callbackData: callbackData,
       }
     } catch (error) {
