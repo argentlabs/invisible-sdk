@@ -105,13 +105,15 @@ type ConnectResponse = {
 }
 
 export class ArgentWebWallet implements ArgentWebWalletInterface {
-  private webWalletConnector: WebWalletConnector
   private appName: string
   private environment: Environment
+
   private sessionParams: SessionParameters
   private paymasterParams?: PaymasterParameters
 
   private tokenService: ITokenServiceWeb
+  private webWalletConnector: WebWalletConnector
+  private approvalRequests: ApprovalRequest[] = []
 
   provider: ProviderInterface
   sessionAccount?: SessionAccountInterface
@@ -224,9 +226,9 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     }
 
     if (!approvalRequests) {
-      // TODO: or just call webwallet connector.connect()
       throw new Error("Approval requests are required")
     }
+    this.approvalRequests = approvalRequests
 
     // generate a new session key pair
     const privateKey = ec.starkCurve.utils.randomPrivateKey()
@@ -414,6 +416,14 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       "Contract Address": method.contract,
       selector: method.selector,
     }))
+
+    this.approvalRequests.forEach((request) => {
+      allowedMethods.push({
+        "Contract Address": request.tokenAddress,
+        selector: "approve",
+      })
+    })
+
     const days =
       this.sessionParams.validityDays ?? SESSION_DEFAULT_VALIDITY_DAYS
     const expiry = BigInt(Date.now() + days * 1000 * 60 * 60 * 24) / 1000n
