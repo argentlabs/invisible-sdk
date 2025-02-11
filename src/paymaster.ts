@@ -32,6 +32,7 @@ import {
   StarknetChainId,
   StrongAccountInterface,
 } from "./types"
+import { SessionAccount } from "./sessionAccount.ts"
 
 export const gasTokenAddress =
   "0x53b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080"
@@ -85,6 +86,47 @@ export const getEstimatedFeesInGasToken = async ({
     gasTokenPrices.map((price) => feeInGasToken(fee, price, compatibility)),
   )
   return { gasTokenFees, gaslessOptions }
+}
+
+export async function deployAndExecuteWithPaymaster(
+  account: SessionAccount,
+  paymasterParams: PaymasterParameters,
+  deploymentPayload: AccountDeploymentPayload,
+  calls: Call[],
+) {
+  // sign message is overriden here to allow the session account to sign the message (called outside our codebase)
+  account.signMessage = (typedData: TypedData) => {
+    return account.signMessageFromOutside(typedData, calls)
+  }
+
+  const deploymentData: DeploymentData = {
+    class_hash: deploymentPayload.classHash,
+    salt: deploymentPayload.addressSalt,
+    unique: "0x0",
+    calldata: convertToHex(deploymentPayload.constructorCalldata),
+  }
+
+  if (paymasterParams.apiKey) {
+    try {
+      const { transactionHash } = await executeCalls(
+        account,
+        calls,
+        {
+          deploymentData,
+        },
+        {
+          apiKey: paymasterParams.apiKey,
+          baseUrl:
+            paymasterParams.baseUrl ??
+            gaslessBaseUrls[await account.getChainId()],
+        },
+      )
+      return { transaction_hash: transactionHash }
+    } catch (e) {
+      console.error(e)
+      throw e
+    }
+  }
 }
 
 export async function executeWithPaymaster(

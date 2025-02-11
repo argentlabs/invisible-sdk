@@ -16,12 +16,11 @@ import { ApprovalRequest, WebWalletConnector } from "starknetkit/webwallet"
 import { ethAddress, strkAddress } from "./lib"
 import { Address } from "./lib/primitives/address"
 import { SessionResponse } from "./lib/shared/stores/session"
-import { createSessionAccount } from "./sessionAccount"
+import { createSessionAccount, SessionAccount } from "./sessionAccount"
 import { storageService } from "./storage"
 import {
   Environment,
   PaymasterParameters,
-  SessionAccountInterface,
   SessionParameters,
   SignedSession,
   StarknetChainId,
@@ -78,7 +77,7 @@ type InitParams = {
 
 interface ArgentWebWalletInterface {
   provider: ProviderInterface
-  sessionAccount?: SessionAccountInterface
+  sessionAccount?: SessionAccount
   isConnected(): Promise<boolean>
   connect(): Promise<ConnectResponse | undefined>
   requestConnection({
@@ -96,7 +95,7 @@ interface ArgentWebWalletInterface {
 }
 
 type ConnectResponse = {
-  account: SessionAccountInterface
+  account: SessionAccount
   user?: User
   callbackData?: string
   approvalTransactionHash?: string
@@ -116,7 +115,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
   private approvalRequests: ApprovalRequest[] = []
 
   provider: ProviderInterface
-  sessionAccount?: SessionAccountInterface
+  sessionAccount?: SessionAccount
 
   constructor(params: InitParams) {
     this.appName = params.appName
@@ -449,7 +448,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
   private async buildSessionAccountFromStoredSession(
     session: SignedSession,
-  ): Promise<SessionAccountInterface> {
+  ): Promise<SessionAccount> {
     return createSessionAccount({
       session,
       sessionParams: this.sessionParams,
