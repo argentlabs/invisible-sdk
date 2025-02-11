@@ -16,12 +16,11 @@ import { ApprovalRequest, WebWalletConnector } from "starknetkit/webwallet"
 import { ethAddress, strkAddress } from "./lib"
 import { Address } from "./lib/primitives/address"
 import { SessionResponse } from "./lib/shared/stores/session"
-import { createSessionAccount } from "./sessionAccount"
+import { createSessionAccount, SessionAccount } from "./sessionAccount"
 import { storageService } from "./storage"
 import {
   Environment,
   PaymasterParameters,
-  SessionAccountInterface,
   SessionParameters,
   SignedSession,
   StarknetChainId,
@@ -78,7 +77,7 @@ type InitParams = {
 
 interface ArgentWebWalletInterface {
   provider: ProviderInterface
-  sessionAccount?: SessionAccountInterface
+  sessionAccount?: SessionAccount
   isConnected(): Promise<boolean>
   connect(): Promise<ConnectResponse | undefined>
   requestConnection({
@@ -96,7 +95,7 @@ interface ArgentWebWalletInterface {
 }
 
 type ConnectResponse = {
-  account: SessionAccountInterface
+  account: SessionAccount
   user?: User
   callbackData?: string
   approvalTransactionHash?: string
@@ -105,16 +104,18 @@ type ConnectResponse = {
 }
 
 export class ArgentWebWallet implements ArgentWebWalletInterface {
-  private webWalletConnector: WebWalletConnector
   private appName: string
   private environment: Environment
+
   private sessionParams: SessionParameters
   private paymasterParams?: PaymasterParameters
 
   private tokenService: ITokenServiceWeb
+  private webWalletConnector: WebWalletConnector
+  private approvalRequests: ApprovalRequest[] = []
 
   provider: ProviderInterface
-  sessionAccount?: SessionAccountInterface
+  sessionAccount?: SessionAccount
 
   constructor(params: InitParams) {
     this.appName = params.appName
@@ -224,9 +225,9 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     }
 
     if (!approvalRequests) {
-      // TODO: or just call webwallet connector.connect()
       throw new Error("Approval requests are required")
     }
+    this.approvalRequests = approvalRequests
 
     // generate a new session key pair
     const privateKey = ec.starkCurve.utils.randomPrivateKey()
@@ -414,6 +415,14 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       "Contract Address": method.contract,
       selector: method.selector,
     }))
+
+    this.approvalRequests.forEach((request) => {
+      allowedMethods.push({
+        "Contract Address": request.tokenAddress,
+        selector: "approve",
+      })
+    })
+
     const days =
       this.sessionParams.validityDays ?? SESSION_DEFAULT_VALIDITY_DAYS
     const expiry = BigInt(Date.now() + days * 1000 * 60 * 60 * 24) / 1000n
@@ -439,7 +448,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
   private async buildSessionAccountFromStoredSession(
     session: SignedSession,
-  ): Promise<SessionAccountInterface> {
+  ): Promise<SessionAccount> {
     return createSessionAccount({
       session,
       sessionParams: this.sessionParams,
