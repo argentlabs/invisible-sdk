@@ -190,6 +190,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       this.sessionAccount =
         await this.buildSessionAccountFromStoredSession(signedSession)
 
+      console.log("connect - Checking isConnected")
       if (!(await this.isConnected())) {
         return
       }
@@ -215,14 +216,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     callbackData?: string
     approvalRequests?: ApprovalRequest[]
   }): Promise<ConnectResponse | undefined> {
-    if (await this.isConnected()) {
-      console.log("requestConnection - Already connected")
-      return await this.connect()
-    } else {
-      console.log("requestConnection - Connecting")
-      // Clear any existing invalid session
-      await this.clearSession()
-    }
+    await this.clearSession()
 
     if (!approvalRequests) {
       throw new Error("Approval requests are required")
@@ -326,6 +320,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
   // check if the user is connected
   async isConnected(): Promise<boolean> {
+    console.log("isConnected run")
     return (
       (await this.webWalletConnector.ready()) &&
       this.sessionAccount !== undefined &&
