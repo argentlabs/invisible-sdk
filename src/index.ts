@@ -22,7 +22,6 @@ import {
 import { ApprovalRequest, WebWalletConnector } from "starknetkit/webwallet"
 import { ethAddress, strkAddress } from "./lib"
 import { Address } from "./lib/primitives/address"
-import { SessionResponse } from "./lib/shared/stores/session"
 import { createSessionAccount, SessionAccount } from "./sessionAccount"
 import { storageService } from "./storage"
 import {
@@ -45,7 +44,6 @@ const SESSION_DEFAULT_VALIDITY_DAYS = 90
 const StorageKeys = {
   User: "User",
   Session: "session",
-  SessionRequest: "session_request",
 } as const
 
 const ENVIRONMENTS: Record<"sepolia" | "mainnet" | "dev", Environment> = {
@@ -97,7 +95,7 @@ interface ArgentWebWalletInterface {
   requestApprovals(approvalRequests: ApprovalRequest[]): Promise<string>
 
   // expert methods
-  exportSignedSession(): Promise<SignedSession | undefined>
+  exportSignedSession(): SignedSession | undefined
   clearSession(): Promise<void>
 }
 
@@ -167,52 +165,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       return { account: this.sessionAccount }
     }
 
-    const sessionRequest = this.getSessionRequestFromStorage()
-
-    if (!sessionRequest) {
-      console.log("connect - No session request found")
-      return // TODO: should we throw an error?
-    }
-
-    // if the session is not signed, that means it was written in the cloud storage after
-    // calling requestConnection(), so waiting for a callback from the wallet
-    const response = await this.getSessionFromInitData()
-    if (response) {
-      console.log("connect - Found a session response, creation the session")
-
-      // open session and sign message
-      const session = await createSession({
-        sessionRequest,
-        address: response.sessionResponse.address,
-        chainId: this.environment.chainId,
-        authorisationSignature: response.sessionResponse.signature,
-      })
-      const signedSession: SignedSession = {
-        ...session,
-        signature: response.sessionResponse.signature,
-        deploymentPayload: response.sessionResponse.deploymentData,
-        address: response.sessionResponse.address,
-      }
-
-      this.sessionAccount =
-        await this.buildSessionAccountFromStoredSession(signedSession)
-
-      console.log("connect - Checking isConnected")
-      if (!(await this.isConnected())) {
-        return
-      }
-
-      this.saveSessionToStorage(signedSession)
-
-      return {
-        account: this.sessionAccount,
-        user: response.user,
-        callbackData: response.sessionResponse.callbackData,
-        approvalTransactionHash:
-          response.sessionResponse.approvalTransactionHash,
-        deploymentPayload: response.sessionResponse.deploymentData,
-      }
-    }
+    return undefined
   }
 
   // call this method when the user clicks a button to connect
@@ -241,10 +194,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
     // build the off chain session info
     const sessionRequest = this.buildSessionRequest(sessionKey)
-
-    // store the session request in the cloud storage to be able to create the session account later
-    // note that the session is saved without the signature and the address
-    this.saveSessionRequestToStorage(sessionRequest)
 
     try {
       const result = await this.webWalletConnector.connectAndSignSession({
@@ -323,7 +272,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
   // check if the user is connected
   async isConnected(): Promise<boolean> {
-    console.log("isConnected run")
+    console.log("isConnected")
     return (
       (await this.webWalletConnector.ready()) &&
       this.sessionAccount !== undefined &&
@@ -332,8 +281,8 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
   }
 
   // export the session, to use it somewhere else in the application
-  async exportSignedSession(): Promise<SignedSession | undefined> {
-    const session = await this.getSessionFromStorage()
+  exportSignedSession(): SignedSession | undefined {
+    const session = this.getSessionFromStorage()
     if (
       session &&
       session.signature &&
@@ -347,34 +296,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
   async clearSession(): Promise<void> {
     storageService.remove(StorageKeys.Session)
-    storageService.remove(StorageKeys.SessionRequest)
     this.sessionAccount = undefined
-  }
-
-  private async getSessionFromInitData(): Promise<
-    | {
-        user: User
-        sessionResponse: SessionResponse
-      }
-    | undefined
-  > {
-    const userStored = storageService.get(StorageKeys.User)
-
-    if (!userStored) {
-      return
-    }
-
-    const user = JSON.parse(userStored) as User
-
-    const sessionResponseStored = storageService.get(user.address)
-
-    if (!sessionResponseStored) {
-      return
-    }
-
-    const sessionResponse = JSON.parse(sessionResponseStored) as SessionResponse
-
-    return { user, sessionResponse }
   }
 
   private getSessionFromStorage(): SignedSession | undefined {
@@ -387,25 +309,8 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     return JSON.parse(session) as Session
   }
 
-  private getSessionRequestFromStorage(): SessionRequest | undefined {
-    const sessionRequest = storageService.get(StorageKeys.SessionRequest)
-
-    if (!sessionRequest) {
-      return
-    }
-
-    return JSON.parse(sessionRequest) as SessionRequest
-  }
-
   private saveSessionToStorage(session: SignedSession) {
     storageService.set(StorageKeys.Session, JSON.stringify(session))
-  }
-
-  private saveSessionRequestToStorage(sessionRequest: SessionRequest) {
-    storageService.set(
-      StorageKeys.SessionRequest,
-      JSON.stringify(sessionRequest),
-    )
   }
 
   private buildSessionRequest(sessionKey: SessionKey): SessionRequest {
