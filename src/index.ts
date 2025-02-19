@@ -6,7 +6,14 @@ import {
   SessionKey,
   SessionRequest,
 } from "@argent/x-sessions"
-import { Call, ec, ProviderInterface, RpcProvider, uint256 } from "starknet"
+import {
+  Call,
+  CallData,
+  ec,
+  ProviderInterface,
+  RpcProvider,
+  uint256,
+} from "starknet"
 import {
   HTTPService,
   ITokenServiceWeb,
@@ -293,10 +300,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
   }
 
   async requestApprovals(approvalRequests: ApprovalRequest[]): Promise<string> {
-    if (!(await this.isConnected())) {
-      throw new Error("User must be connected to request approval requests")
-    }
-
     const calls =
       approvalRequests.map((request: any) => {
         if (!request.tokenAddress || !request.spender || !request.amount) {
@@ -308,10 +311,10 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
         return {
           entry_point: "approve",
           contract_address: request.tokenAddress,
-          calldata: [
+          calldata: CallData.compile([
             request.spender,
             uint256.bnToUint256(BigInt(request.amount)),
-          ],
+          ]),
         }
       }) || []
 
