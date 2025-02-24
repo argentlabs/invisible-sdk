@@ -3,9 +3,11 @@ import { Address } from "./lib/primitives/address"
 import { AccountDeploymentPayload } from "./lib/shared/types/account"
 import {
   AccountInterface,
+  ArraySignatureType,
   Call,
   DeployContractResponse,
   Signature,
+  TypedData,
 } from "starknet"
 
 export enum StarknetChainId {
@@ -31,20 +33,6 @@ export interface StrongAccountInterface
   extends Omit<AccountInterface, "address"> {
   address: Address
 }
-
-export interface SelfDeployingAccountInterface extends StrongAccountInterface {
-  getDeploymentPayload(): Promise<AccountDeploymentPayload>
-  isDeployed(): Promise<boolean>
-  deployFrom(account: AccountInterface): Promise<DeployContractResponse>
-}
-
-export interface SessionAccountInterface extends SelfDeployingAccountInterface {
-  getOutsideExecutionPayload({ calls }: { calls: Call[] }): Promise<Call>
-  isDeployed(): Promise<boolean>
-  deployFrom(account: AccountInterface): Promise<DeployContractResponse>
-  getSessionStatus(): SessionStatus
-}
-
 export type SessionStatus =
   | "VALID"
   | "EXPIRED"
@@ -66,6 +54,8 @@ export interface StrongAccountInterface
 
 export interface SelfDeployingAccountInterface extends StrongAccountInterface {
   getDeploymentPayload(): Promise<AccountDeploymentPayload>
+  isDeployed(): Promise<boolean>
+  deployFrom(account: AccountInterface): Promise<DeployContractResponse>
 }
 
 export interface SessionAccountInterface extends SelfDeployingAccountInterface {
@@ -73,6 +63,10 @@ export interface SessionAccountInterface extends SelfDeployingAccountInterface {
   isDeployed(): Promise<boolean>
   deployFrom(account: AccountInterface): Promise<DeployContractResponse>
   getSessionStatus(): SessionStatus
+  signMessageFromOutside(
+    typedData: TypedData,
+    calls: Call[],
+  ): Promise<ArraySignatureType>
 }
 
 export interface SignedSession extends Session {
