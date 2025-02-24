@@ -7,8 +7,10 @@ import {
   SessionRequest,
 } from "@argent/x-sessions"
 import {
+  CairoVersion,
   Call,
   CallData,
+  DeployAccountContractPayload,
   ec,
   ProviderInterface,
   RpcProvider,
@@ -105,7 +107,7 @@ type ConnectResponse = {
   callbackData?: string
   approvalTransactionHash?: string
   approvalRequestsCalls?: Call[]
-  deploymentPayload?: any
+  deploymentPayload?: DeployAccountContractPayload & { version: CairoVersion }
 }
 
 export class ArgentWebWallet implements ArgentWebWalletInterface {
