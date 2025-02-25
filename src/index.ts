@@ -7,10 +7,8 @@ import {
   SessionRequest,
 } from "@argent/x-sessions"
 import {
-  CairoVersion,
   Call,
   CallData,
-  DeployAccountContractPayload,
   ec,
   ProviderInterface,
   RpcProvider,
@@ -33,6 +31,7 @@ import {
   SignedSession,
   StarknetChainId,
 } from "./types"
+import { AccountDeploymentPayload } from "./lib/shared/types/account.ts"
 
 export * from "./lib"
 export * from "./paymaster"
@@ -107,7 +106,7 @@ type ConnectResponse = {
   callbackData?: string
   approvalTransactionHash?: string
   approvalRequestsCalls?: Call[]
-  deploymentPayload?: DeployAccountContractPayload & { version: CairoVersion }
+  deploymentPayload?: AccountDeploymentPayload
 }
 
 export class ArgentWebWallet implements ArgentWebWalletInterface {
