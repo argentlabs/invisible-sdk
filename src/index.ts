@@ -320,13 +320,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       selector: method.selector,
     }))
 
-    this.approvalRequests.forEach((request) => {
-      allowedMethods.push({
-        "Contract Address": request.tokenAddress,
-        selector: "approve",
-      })
-    })
-
     const days =
       this.sessionParams.validityDays ?? SESSION_DEFAULT_VALIDITY_DAYS
     const expiry = BigInt(Date.now() + days * 1000 * 60 * 60 * 24) / 1000n
