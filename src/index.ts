@@ -51,7 +51,7 @@ const StorageKeys = {
 const ENVIRONMENTS: Record<"sepolia" | "mainnet" | "dev", Environment> = {
   sepolia: {
     chainId: StarknetChainId.SN_SEPOLIA,
-    webWalletUrl: "https://web-v2.hydrogen.argent47.net",
+    webWalletUrl: "https://sepolia-web.argent.xyz",
     argentBaseUrl: "https://api.hydrogen.argent47.net/v1",
     providerDefaultUrl: "https://free-rpc.nethermind.io/sepolia-juno",
   },
