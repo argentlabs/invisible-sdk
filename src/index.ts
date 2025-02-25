@@ -118,7 +118,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
   private tokenService: ITokenServiceWeb
   private webWalletConnector: WebWalletConnector
-  private approvalRequests: ApprovalRequest[] = []
 
   provider: ProviderInterface
   sessionAccount?: SessionAccount
@@ -182,7 +181,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     if (!approvalRequests) {
       throw new Error("Approval requests are required")
     }
-    this.approvalRequests = approvalRequests
 
     // generate a new session key pair
     const privateKey = ec.starkCurve.utils.randomPrivateKey()
