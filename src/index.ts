@@ -40,7 +40,7 @@ export { storageService, type IStorageService } from "./storage"
 export type * from "./types"
 export type { ApprovalRequest, WebWalletConnector }
 
-const SESSION_DEFAULT_VALIDITY_DAYS = 90
+const SESSION_DEFAULT_VALIDITY_DAYS = 30
 
 const StorageKeys = {
   User: "User",
@@ -321,6 +321,13 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     const days =
       this.sessionParams.validityDays ?? SESSION_DEFAULT_VALIDITY_DAYS
     const expiry = BigInt(Date.now() + days * 1000 * 60 * 60 * 24) / 1000n
+
+    if (days > SESSION_DEFAULT_VALIDITY_DAYS) {
+      console.warn(
+        `The 'validityDays' param is larger than the limit of ${SESSION_DEFAULT_VALIDITY_DAYS} days. Please set your 'validityDays' inside the boundary.`,
+      )
+    }
+
     const metaData = {
       projectID: this.appName,
       txFees: [
