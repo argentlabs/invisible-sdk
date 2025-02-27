@@ -27,8 +27,8 @@ importers:
         specifier: 6.23.1
         version: 6.23.1
       starknetkit:
-        specifier: 2.7.0-beta-ww-sdk.2
-        version: 2.7.0-beta-ww-sdk.2(starknet@6.23.1)
+        specifier: 2.7.0-beta-ww-sdk.3
+        version: 2.7.0-beta-ww-sdk.3(starknet@6.23.1)
       valibot:
         specifier: 0.35.0
         version: 0.35.0
@@ -2620,8 +2620,8 @@ packages:
   starknet@6.23.1:
     resolution: {integrity: sha512-vQV9luXpmwZZs9RVZaRwm2iD8T0PYx1AzgZeQsCvD89tR0HwUF0paty27ZzuJrdPe0CmAs/ipAYFCE55jbj0RQ==}
 
-  starknetkit@2.7.0-beta-ww-sdk.2:
-    resolution: {integrity: sha512-skhgL1oe71oF5gsH4arvDklbID2RbylU8odvyQR6IoVRye2em13LtRUrIdVeQTh1HR0AfD6ACH6azR9IDGwJTw==}
+  starknetkit@2.7.0-beta-ww-sdk.3:
+    resolution: {integrity: sha512-wvx0TXWRhX9EQGLLw96t3/0irOZnGAqstJakzZmUbM53g+lUo1kSJeudKX0KzSpRGZsKicDOfiY65STDoyeukg==}
     peerDependencies:
       starknet: ^6.11.0
 
@@ -5943,7 +5943,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  starknetkit@2.7.0-beta-ww-sdk.2(starknet@6.23.1):
+  starknetkit@2.7.0-beta-ww-sdk.3(starknet@6.23.1):
     dependencies:
       '@starknet-io/get-starknet': 4.0.5
       '@starknet-io/get-starknet-core': 4.0.5

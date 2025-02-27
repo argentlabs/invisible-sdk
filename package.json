@@ -37,7 +37,7 @@
     "assert": "2.1.0",
     "moderndash": "3.12.0",
     "starknet": "6.23.1",
-    "starknetkit": "2.7.0-beta-ww-sdk.2",
+    "starknetkit": "2.7.0-beta-ww-sdk.3",
     "valibot": "0.35.0"
   },
   "devDependencies": {
