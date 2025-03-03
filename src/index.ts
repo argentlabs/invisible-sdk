@@ -178,10 +178,6 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
   }): Promise<ConnectResponse | undefined> {
     await this.clearSession()
 
-    if (!approvalRequests) {
-      throw new Error("Approval requests are required")
-    }
-
     // generate a new session key pair
     const privateKey = ec.starkCurve.utils.randomPrivateKey()
     const publicSessionKey = ec.starkCurve.getStarkKey(privateKey)
@@ -197,7 +193,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     try {
       const result = await this.webWalletConnector.connectAndSignSession({
         callbackData,
-        approvalRequests,
+        approvalRequests: approvalRequests ?? [],
         sessionTypedData: sessionRequest.sessionTypedData,
       })
 
