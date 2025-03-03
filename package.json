@@ -1,6 +1,6 @@
 {
   "name": "@argent/webwallet-sdk",
-  "version": "1.0.0-alpha.14",
+  "version": "1.0.0-alpha.15",
   "license": "MIT",
   "type": "module",
   "private": false,
