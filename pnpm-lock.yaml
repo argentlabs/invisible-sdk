@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@argent/x-sessions':
-        specifier: ^7.0.0-beta.5
+        specifier: ^7.0.0
         version: 7.0.0(starknet@6.23.1)
       '@argent/x-shared':
         specifier: ^1.38.0
@@ -27,8 +27,8 @@ importers:
         specifier: 6.23.1
         version: 6.23.1
       starknetkit:
-        specifier: 2.7.0-beta-ww-sdk.3
-        version: 2.7.0-beta-ww-sdk.3(starknet@6.23.1)
+        specifier: 2.8.0
+        version: 2.8.0(starknet@6.23.1)
       valibot:
         specifier: 0.35.0
         version: 0.35.0
@@ -745,11 +745,11 @@ packages:
     resolution: {integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==}
     engines: {node: '>=18'}
 
-  '@starknet-io/get-starknet-core@4.0.5':
-    resolution: {integrity: sha512-aMnDHhWO0IMdwusZcoyPPnvAxzREWv+XkPMAtB2O1h64x1QKvpR/oVoDl/ZY81JKS4YlUWqcuD+sMGGUVZAa7w==}
+  '@starknet-io/get-starknet-core@4.0.6':
+    resolution: {integrity: sha512-Ka7d1+ZnpVcQObph4eQyQ/pz5vkZVTdtoFMotTarLXi5S4DvDAlCwnTC/LX3gSJK4UXBSxn9MPP1S+VPw3W/9Q==}
 
-  '@starknet-io/get-starknet@4.0.5':
-    resolution: {integrity: sha512-eAj3Zh9PVrn3E2jC9N7E+HxU7VlMxiUckGpL9lrWLa7vnORJkZg/3tDmjfqzgVNGN9d7ElcjIXeJB6/5d5CUCg==}
+  '@starknet-io/get-starknet@4.0.6':
+    resolution: {integrity: sha512-FhyYF90g1FQHRJudv1FOWtSRLSFoVAM4PTb14Pgy+5aeENubr5hekprqFhZWNk9c3msxK/Nxio+Xc+sgg9zvEg==}
 
   '@starknet-io/types-js@0.7.10':
     resolution: {integrity: sha512-1VtCqX4AHWJlRRSYGSn+4X1mqolI1Tdq62IwzoU2vUuEE72S1OlEeGhpvd6XsdqXcfHmVzYfj8k1XtKBQqwo9w==}
@@ -2620,8 +2620,8 @@ packages:
   starknet@6.23.1:
     resolution: {integrity: sha512-vQV9luXpmwZZs9RVZaRwm2iD8T0PYx1AzgZeQsCvD89tR0HwUF0paty27ZzuJrdPe0CmAs/ipAYFCE55jbj0RQ==}
 
-  starknetkit@2.7.0-beta-ww-sdk.3:
-    resolution: {integrity: sha512-wvx0TXWRhX9EQGLLw96t3/0irOZnGAqstJakzZmUbM53g+lUo1kSJeudKX0KzSpRGZsKicDOfiY65STDoyeukg==}
+  starknetkit@2.8.0:
+    resolution: {integrity: sha512-ojVBgOUIquCXRVNzHGj/emR01cb8I8YydWWKlEIr8wbtakcFnMv7RLLOYdI9y4dyW6CSKWqxmlz1nJDa5OzZeg==}
     peerDependencies:
       starknet: ^6.11.0
 
@@ -3813,15 +3813,15 @@ snapshots:
 
   '@sindresorhus/merge-streams@4.0.0': {}
 
-  '@starknet-io/get-starknet-core@4.0.5':
+  '@starknet-io/get-starknet-core@4.0.6':
     dependencies:
       '@module-federation/runtime': 0.1.21
       '@starknet-io/types-js': 0.7.10
       async-mutex: 0.5.0
 
-  '@starknet-io/get-starknet@4.0.5':
+  '@starknet-io/get-starknet@4.0.6':
     dependencies:
-      '@starknet-io/get-starknet-core': 4.0.5
+      '@starknet-io/get-starknet-core': 4.0.6
       bowser: 2.11.0
 
   '@starknet-io/types-js@0.7.10': {}
@@ -5943,10 +5943,10 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  starknetkit@2.7.0-beta-ww-sdk.3(starknet@6.23.1):
+  starknetkit@2.8.0(starknet@6.23.1):
     dependencies:
-      '@starknet-io/get-starknet': 4.0.5
-      '@starknet-io/get-starknet-core': 4.0.5
+      '@starknet-io/get-starknet': 4.0.6
+      '@starknet-io/get-starknet-core': 4.0.6
       '@starknet-io/types-js': 0.7.10
       '@trpc/client': 10.45.2(@trpc/server@10.45.2)
       '@trpc/server': 10.45.2
