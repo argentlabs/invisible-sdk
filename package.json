@@ -2,7 +2,7 @@
   "name": "@argent/invisible-sdk",
   "version": "1.0.0-alpha.15",
   "license": "MIT",
-  "type": "module", d
+  "type": "module",
   "private": false,
   "main": "dist/index.es.js",
   "module": "dist/index.mjs",
