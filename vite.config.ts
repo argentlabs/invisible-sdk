@@ -1,7 +1,8 @@
-import path from "path";
-import process from "process";
-import { defineConfig } from "vite";
-import dts from "vite-plugin-dts";
+import path from "path"
+import process from "process"
+import { defineConfig } from "vite"
+import dts from "vite-plugin-dts"
+
 export default defineConfig({
   define: {
     "process.env": {},
@@ -19,10 +20,10 @@ export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, "src/index.ts"),
-      name: "@argent/webwallet-sdk",
+      name: "@argent/invisible-sdk",
       fileName: (format) => `index.${format}.js`,
     },
-    minify: 'esbuild',
+    minify: "esbuild",
     rollupOptions: {
       // Externalize deps that shouldn't be bundled into your library
       external: [], // Add any external dependencies here
@@ -42,4 +43,4 @@ export default defineConfig({
       rollupTypes: true,
     }),
   ],
-});
+})

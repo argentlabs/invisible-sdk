@@ -140,7 +140,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
         {
           headers: {
             "Content-Type": "application/json",
-            "Argent-Client": "webwallet-sdk",
+            "Argent-Client": "invisible-sdk",
             "Argent-Version": "1.0.0",
             "Argent-Network":
               this.environment.chainId === StarknetChainId.SN_MAIN

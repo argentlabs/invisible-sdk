@@ -26,5 +26,5 @@
     ],
     "@semantic-release/github"
   ],
-  "repositoryUrl": "git@github.com:argentlabs/webwallet-sdk.git"
+  "repositoryUrl": "git@github.com:argentlabs/invisible-sdk.git"
 }
