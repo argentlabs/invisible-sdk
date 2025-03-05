@@ -8,6 +8,13 @@
   "main": "dist/index.es.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "keywords": [
+    "starknet",
+    "sessions",
+    "paymasters",
+    "argent",
+    "webwallet"
+  ],
   "files": [
     "dist"
   ],
