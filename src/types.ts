@@ -18,7 +18,11 @@ export enum StarknetChainId {
 export type PaymasterParameters = {
   baseUrl?: string
   apiKey?: string
-  tokenAddress?: Address
+  abortSignal?: AbortSignal
+  apiPublicKey?: string
+  customHeaders?: {
+    [key: string]: string
+  }
 }
 
 export type SessionParameters = {
