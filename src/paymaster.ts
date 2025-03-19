@@ -106,26 +106,24 @@ export async function deployAndExecuteWithPaymaster(
     calldata: convertToHex(deploymentPayload.constructorCalldata),
   }
 
-  if (paymasterParams.apiKey) {
-    try {
-      const { transactionHash } = await executeCalls(
-        account,
-        calls,
-        {
-          deploymentData,
-        },
-        {
-          apiKey: paymasterParams.apiKey,
-          baseUrl:
-            paymasterParams.baseUrl ??
-            gaslessBaseUrls[await account.getChainId()],
-        },
-      )
-      return { transaction_hash: transactionHash }
-    } catch (e) {
-      console.error(e)
-      throw e
-    }
+  try {
+    const { transactionHash } = await executeCalls(
+      account,
+      calls,
+      {
+        deploymentData,
+      },
+      {
+        apiKey: paymasterParams.apiKey,
+        baseUrl:
+          paymasterParams.baseUrl ??
+          gaslessBaseUrls[await account.getChainId()],
+      },
+    )
+    return { transaction_hash: transactionHash }
+  } catch (e) {
+    console.error(e)
+    throw e
   }
 }
 
