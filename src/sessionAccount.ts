@@ -107,11 +107,9 @@ export class SessionAccount
       this.signMessage = (typedData: TypedData) =>
         this.signMessageFromOutside(typedData, calls)
       const response = await executeWithPaymaster(
-        this.tokenService,
         this,
         calls,
         this.paymasterParams,
-        universalDetails,
       )
       this.isDeployedPromise = Promise.resolve(true)
       return response
