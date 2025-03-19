@@ -97,7 +97,7 @@ interface ArgentWebWalletInterface {
 
   // expert methods
   exportSignedSession(): SignedSession | undefined
-  clearSession(): Promise<void>
+  clearSession(): void
 }
 
 type ConnectResponse = {
@@ -176,7 +176,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     callbackData?: string
     approvalRequests?: ApprovalRequest[]
   }): Promise<ConnectResponse | undefined> {
-    await this.clearSession()
+    this.clearSession()
 
     // generate a new session key pair
     const privateKey = ec.starkCurve.utils.randomPrivateKey()
@@ -289,7 +289,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     return undefined
   }
 
-  async clearSession(): Promise<void> {
+  clearSession(): void {
     storageService.remove(StorageKeys.Session)
     this.sessionAccount = undefined
   }
