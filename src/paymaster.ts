@@ -1,8 +1,4 @@
-import {
-  isEqualAddress,
-  ITokenServiceWeb,
-  normalizeAddress,
-} from "@argent/x-shared"
+import { isEqualAddress, normalizeAddress } from "@argent/x-shared"
 import {
   BASE_URL,
   DeploymentData,
@@ -106,129 +102,46 @@ export async function deployAndExecuteWithPaymaster(
     calldata: convertToHex(deploymentPayload.constructorCalldata),
   }
 
-  if (paymasterParams.apiKey) {
-    try {
-      const { transactionHash } = await executeCalls(
-        account,
-        calls,
-        {
-          deploymentData,
-        },
-        {
-          apiKey: paymasterParams.apiKey,
-          baseUrl:
-            paymasterParams.baseUrl ??
-            gaslessBaseUrls[await account.getChainId()],
-        },
-      )
-      return { transaction_hash: transactionHash }
-    } catch (e) {
-      console.error(e)
-      throw e
-    }
-  }
-}
-
-export async function executeWithPaymaster(
-  tokenService: ITokenServiceWeb,
-  account: SelfDeployingAccountInterface,
-  calls: Call[],
-  paymasterParams: PaymasterParameters,
-  universalDetails?: UniversalDetails,
-) {
-  const isDeployed = await account.isDeployed()
-  const deploymentPayload = await account.getDeploymentPayload()
-  if (!isDeployed) {
-    universalDetails = { ...universalDetails, nonce: 0n }
-  }
-  // execution with optional account deployment via paymaster
-  let deploymentData: DeploymentData | undefined
-  if (!isDeployed) {
-    deploymentData = {
-      class_hash: deploymentPayload.classHash,
-      salt: deploymentPayload.addressSalt,
-      unique: "0x0",
-      calldata: convertToHex(deploymentPayload.constructorCalldata),
-    }
-  }
-  if (paymasterParams.apiKey) {
-    try {
-      const { transactionHash } = await executeCalls(
-        account,
-        calls,
-        {
-          deploymentData,
-        },
-        {
-          apiKey: paymasterParams.apiKey,
-          baseUrl:
-            paymasterParams.baseUrl ??
-            gaslessBaseUrls[await account.getChainId()],
-        },
-      )
-      return { transaction_hash: transactionHash }
-    } catch (e) {
-      throw e
-    }
-  }
-
-  const fee = await getNativeFees({
-    deploymentPayload,
-    isDeployed,
-    calls,
-    account,
-    universalDetails,
-  })
-
-  const { gasTokenFees, gaslessOptions } = await getEstimatedFeesInGasToken({
-    fee,
-    account,
-  })
-
-  const network = (tokenService as any).httpService.requestInit.headers[
-    "Argent-Network"
-  ]
-  const tokens = await tokenService.fetchAddressTokenBalancesFromBackend(
-    account.address,
-    network,
-  )
-
-  let gasTokenAddress: string | undefined
-  let maxGasTokenAmount: bigint | undefined
-  tokens.find((token) => {
-    const balance = BigInt(token.balance)
-    const gasTokenFee = gasTokenFees[normalizeAddress(token.address)]
-    if (gasTokenFee && balance > gasTokenFee) {
-      gasTokenAddress = token.address
-      maxGasTokenAmount = gasTokenFee
-    }
-  })
-  assert(
-    gasTokenAddress,
-    "Not enough balance in any gas token - please fund your wallet with a valid gas token",
-  )
-
   try {
     const { transactionHash } = await executeCalls(
       account,
       calls,
       {
-        gasTokenAddress: paymasterParams.apiKey
-          ? undefined
-          : (paymasterParams.tokenAddress ?? gasTokenAddress),
-        maxGasTokenAmount: paymasterParams.apiKey
-          ? undefined
-          : maxGasTokenAmount,
         deploymentData,
       },
       {
-        apiKey: paymasterParams.apiKey,
-        baseUrl: paymasterParams.baseUrl ?? gaslessOptions.baseUrl,
+        ...paymasterParams,
+        baseUrl:
+          paymasterParams.baseUrl ??
+          gaslessBaseUrls[await account.getChainId()],
       },
     )
     return { transaction_hash: transactionHash }
   } catch (e) {
-    console.log(e)
+    console.error(e)
+    throw e
+  }
+}
+
+export async function executeWithPaymaster(
+  account: SessionAccount,
+  calls: Call[],
+  paymasterParams: PaymasterParameters,
+) {
+  try {
+    const { transactionHash } = await executeCalls(
+      account,
+      calls,
+      {},
+      {
+        ...paymasterParams,
+        baseUrl:
+          paymasterParams.baseUrl ??
+          gaslessBaseUrls[await account.getChainId()],
+      },
+    )
+    return { transaction_hash: transactionHash }
+  } catch (e) {
     throw e
   }
 }

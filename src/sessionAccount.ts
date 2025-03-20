@@ -57,7 +57,7 @@ export class SessionAccount
   protected deploymentPayload: AccountDeploymentPayload
   protected session: SignedSession
   protected sessionParams: SessionParameters
-  protected paymasterParams: PaymasterParameters
+  protected paymasterParams?: PaymasterParameters
   argentBaseUrl: string
   chainId: StarknetChainId
   tokenService: ITokenServiceWeb
@@ -71,7 +71,7 @@ export class SessionAccount
     argentBaseUrl: string,
     chainId: StarknetChainId,
     tokenService: ITokenServiceWeb,
-    paymasterParams: PaymasterParameters,
+    paymasterParams?: PaymasterParameters,
   ) {
     super(provider, signer, deploymentPayload)
     this.deploymentPayload = deploymentPayload
@@ -107,17 +107,15 @@ export class SessionAccount
       this.signMessage = (typedData: TypedData) =>
         this.signMessageFromOutside(typedData, calls)
       const response = await executeWithPaymaster(
-        this.tokenService,
         this,
         calls,
-        this.paymasterParams,
-        universalDetails,
+        this.paymasterParams ?? {},
       )
       this.isDeployedPromise = Promise.resolve(true)
       return response
     }
     try {
-      if (this.paymasterParams.apiKey) {
+      if (this.paymasterParams) {
         return await handleWithPaymaster()
       } else {
         assert(
@@ -220,7 +218,7 @@ export async function createSessionAccount({
   argentBaseUrl: string
   transactionVersion?: "0x2" | "0x3"
   tokenService: ITokenServiceWeb
-  paymasterParams: PaymasterParameters
+  paymasterParams?: PaymasterParameters
 }): Promise<SessionAccount> {
   const account = await buildSessionAccount({
     session,
