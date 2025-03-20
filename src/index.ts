@@ -72,11 +72,14 @@ interface User {
   address: Address
 }
 
+type WebWalletTheme = "dark" | "light"
+
 type InitParams = {
   appName: string
   sessionParams: SessionParameters
   paymasterParams?: PaymasterParameters
   webwalletUrl?: string
+  webwalletTheme?: WebWalletTheme
   environment?: keyof typeof ENVIRONMENTS
   provider?: ProviderInterface
 }
@@ -118,6 +121,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
 
   private tokenService: ITokenServiceWeb
   private webWalletConnector: WebWalletConnector
+  private webwalletTheme: WebWalletTheme
 
   provider: ProviderInterface
   sessionAccount?: SessionAccount
@@ -127,12 +131,13 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
     this.sessionParams = params.sessionParams
     this.environment = ENVIRONMENTS[params.environment ?? "sepolia"]
     this.paymasterParams = params.paymasterParams ?? {}
+    this.webwalletTheme = params.webwalletTheme ?? "light"
     this.provider =
       params.provider ??
       new RpcProvider({ nodeUrl: this.environment.providerDefaultUrl })
     this.webWalletConnector = new WebWalletConnector({
       url: this.environment.webWalletUrl,
-      theme: "dark",
+      theme: this.webwalletTheme,
     })
     this.tokenService = new TokenServiceWeb(
       this.environment.argentBaseUrl,
