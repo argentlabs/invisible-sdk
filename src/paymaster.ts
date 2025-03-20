@@ -110,7 +110,7 @@ export async function deployAndExecuteWithPaymaster(
         deploymentData,
       },
       {
-        apiKey: paymasterParams.apiKey,
+        ...paymasterParams,
         baseUrl:
           paymasterParams.baseUrl ??
           gaslessBaseUrls[await account.getChainId()],
@@ -134,7 +134,7 @@ export async function executeWithPaymaster(
       calls,
       {},
       {
-        apiKey: paymasterParams.apiKey,
+        ...paymasterParams,
         baseUrl:
           paymasterParams.baseUrl ??
           gaslessBaseUrls[await account.getChainId()],
