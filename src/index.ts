@@ -353,7 +353,7 @@ export class ArgentWebWallet implements ArgentWebWalletInterface {
       provider: this.provider,
       chainId: this.environment.chainId,
       argentBaseUrl: this.environment.argentBaseUrl,
-      paymasterParams: this.paymasterParams ?? {},
+      paymasterParams: this.paymasterParams,
       tokenService: this.tokenService,
     })
   }
