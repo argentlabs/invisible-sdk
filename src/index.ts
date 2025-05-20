@@ -52,19 +52,19 @@ const ENVIRONMENTS: Record<"sepolia" | "mainnet" | "dev", Environment> = {
     chainId: StarknetChainId.SN_SEPOLIA,
     webWalletUrl: "https://sepolia-web.argent.xyz",
     argentBaseUrl: "https://cloud.argent-api.com/v1",
-    providerDefaultUrl: "https://free-rpc.nethermind.io/sepolia-juno/v0_7",
+    providerDefaultUrl: "https://starknet-sepolia.public.blastapi.io/rpc/v0_7",
   },
   mainnet: {
     chainId: StarknetChainId.SN_MAIN,
     webWalletUrl: "https://web.argent.xyz",
     argentBaseUrl: "https://cloud.argent-api.com/v1",
-    providerDefaultUrl: "https://free-rpc.nethermind.io/mainnet-juno",
+    providerDefaultUrl: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7",
   },
   dev: {
     chainId: StarknetChainId.SN_SEPOLIA,
     webWalletUrl: "http://localhost:3005",
     argentBaseUrl: "https://api.hydrogen.argent47.net/v1",
-    providerDefaultUrl: "https://free-rpc.nethermind.io/sepolia-juno/v0_7",
+    providerDefaultUrl: "https://starknet-sepolia.public.blastapi.io/rpc/v0_7",
   },
 }
 
