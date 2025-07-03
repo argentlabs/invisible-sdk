@@ -50,13 +50,13 @@ const StorageKeys = {
 const ENVIRONMENTS: Record<"sepolia" | "mainnet" | "dev", Environment> = {
   sepolia: {
     chainId: StarknetChainId.SN_SEPOLIA,
-    webWalletUrl: "https://sepolia-web.argent.xyz",
+    webWalletUrl: "https://sepolia-web.ready.co",
     argentBaseUrl: "https://cloud.argent-api.com/v1",
     providerDefaultUrl: "https://starknet-sepolia.public.blastapi.io/rpc/v0_7",
   },
   mainnet: {
     chainId: StarknetChainId.SN_MAIN,
-    webWalletUrl: "https://web.argent.xyz",
+    webWalletUrl: "https://web.ready.co",
     argentBaseUrl: "https://cloud.argent-api.com/v1",
     providerDefaultUrl: "https://starknet-mainnet.public.blastapi.io/rpc/v0_7",
   },
