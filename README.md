@@ -1,4 +1,4 @@
-# 🚨 ‼️ This repo will no longer be maintained. No new features or bug fixes will be implemented »
+# « 🚨 ‼️ This repo will no longer be maintained. No new features or bug fixes will be implemented »
 
 # @argent/invisible-sdk
 
