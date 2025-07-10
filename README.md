@@ -1,3 +1,5 @@
+# 🚨 ‼️ This repo will no longer be maintained. No new features or bug fixes will be implemented »
+
 # @argent/invisible-sdk
 
 This package provides an integration for Argent's Web Wallet
